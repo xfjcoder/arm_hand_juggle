@@ -144,12 +144,44 @@ Remaining drops on the fresh seeds:
 - 14 runs: the ball was not held.
 - 12 runs: the landing point was too far to reach within the speed limits.
 
+## Stage 1 with realistic sensing (passed, narrowly)
+
+`sensing.py` replaces what the controller knows about the ball with sensor models. `--sensors ideal|real` turns
+it on; without the flag, the Stage 1 code path above runs unchanged.
+- **Camera** (in flight): the ball's 3-D position at a frame rate, delivered after a delay. A frame is lost when
+  the arm or hand blocks the line of sight (MuJoCo ray cast from the camera) or at random. Frames carry their
+  capture time, so the parabola fit predicts over the delay.
+- **Tactile skin** (palm and fingers): contact (force above a threshold) and the ball's position, estimated from
+  the contact points and normals (0.2 mm error on average). The real Shadow Hand has tactile sensing only in the
+  fingertips, so this assumes an add-on palm skin.
+
+| preset | camera | tactile |
+|---|---|---|
+| ideal | every step, no delay, 2 mm noise | 100 Hz, no delay, 1 mm noise |
+| real | 120 Hz, 20 ms delay, 2 mm noise, occlusion, 2% dropped frames | 100 Hz, 10 ms delay, 2 mm noise, 0.05 N threshold |
+
+| sensing | seeds | median catches in a row | mean (95% CI) | reach 30/30 | within joint limits |
+|---|---|---|---|---|---|
+| Stage 1 path | 50000+ | 30 | 22.1 (20.2-24.0) | 68/120 | 120/120 |
+| ideal | 50000+ | 30 | 25.0 (23.4-26.6) | 85/120 | 120/120 |
+| real | 50000+ | 30 | 21.8 (19.9-23.7) | 64/120 | 120/120 |
+| real, fresh seeds | 90000+ | **22** | 19.4 (17.5-21.3) | 47/120 | **120/120** |
+
+- **A bug found on the way.** The first version took the ball's spot at release from the skin. At release the
+  ball rolls across the palm at about 0.8 m/s, and a reading up to 10 ms old misplaced it by several mm. The
+  catch aims for that spot, and runs lost about 7 catches on average (24-seed isolation runs). The catch now aims
+  for the spot and height it was tuned with, as a real robot would; the skin only detects the release. That is
+  also why "ideal" beats the Stage 1 path.
+- **Occlusion.** With the camera in front of and above the robot (2.5 m away, looking down 20 degrees), the hand
+  never hid the ball. A level side-on camera lost 7% of frames and one below the palm 56%, mostly while the ball
+  sat in the hand, where the skin takes over.
+- **Main cost of realistic sensing:** catch motions that would break the speed limits ("approach too fast",
+  23 of the 120 fresh-seed runs, against 5 with ideal sensing). Delayed, sparser camera data means a later,
+  faster correction. Stage 2 will need earlier catch planning or more margin.
+
 ## Next
 
-- **Sensor models before Stage 2.** Add camera latency, frame rate and dropouts while the ball is hidden by the
-  hand, and tactile contact readings in place of the ideal in-hand position. Stage 2's tighter timing should be
-  tuned with them.
-- **Stage 2:** two balls in one hand.
+- **Stage 2:** two balls in one hand, developed with the realistic sensors on (ideal sensing as a debug switch).
 - **Stage 3:** three balls, decided using the speed numbers above.
 
 ```
@@ -159,4 +191,5 @@ PYTHONPATH=. MUJOCO_GL=egl python3 stage0_robust.py --n 120     # needs robolab 
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_juggle.py --catch runs/catch5_v443.json --cycles 8 --seed 50001 --kick 0.05 --noise 0.002 --gif media_full/stage1_juggle.gif
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_v443.json             # seeds 50000+
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --seed0 90000 --catch runs/catch5_v443.json --out logs/stage1_verify_90000.jsonl
+PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_v443.json --sensors real --out logs/stage1_sensors_real.jsonl
 ```
