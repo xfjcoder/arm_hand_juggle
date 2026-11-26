@@ -1,0 +1,11 @@
+
+  pos [1.4, 0.5, 0.1] yaw +0.00  worst flat over 0.25 m stroke 2.18 m/s, worst a_up 12.7  q [0.32, 0.43, -0.88, 0.45, 1.89, 1.57]
+  pos [1.4, -0.5, 0.1] yaw +0.00  worst flat over 0.25 m stroke 2.18 m/s, worst a_up 12.7  q [2.82, 2.71, 0.88, 2.69, -1.89, 1.57]
+  pos [1.4, -0.5, 0.1] yaw +0.00  worst flat over 0.25 m stroke 2.18 m/s, worst a_up 12.7  q [2.82, 2.71, 0.88, 2.69, -1.89, 1.57]
+  pos [1.4, 0.5, 0.1] yaw +0.00  worst flat over 0.25 m stroke 2.18 m/s, worst a_up 12.7  q [0.32, 0.43, -0.88, 0.45, 1.89, 1.57]
+  pos [1.4, -0.25, 0.3] yaw +0.00  worst flat over 0.25 m stroke 2.17 m/s, worst a_up 14.5  q [-0.43, 0.62, -1.19, -2.57, -1.14, -1.57]
+  pos [1.4, -0.25, 0.3] yaw +0.00  worst flat over 0.25 m stroke 2.17 m/s, worst a_up 14.5  q [-0.43, 0.62, -1.19, -2.57, -1.14, -1.57]
+  pos [1.4, 0.25, 0.3] yaw +0.00  worst flat over 0.25 m stroke 2.17 m/s, worst a_up 14.6  q [-2.71, 2.52, 1.19, -0.57, 1.14, -1.57]
+  pos [1.4, 0.25, 0.3] yaw +0.00  worst flat over 0.25 m stroke 2.17 m/s, worst a_up 14.2  q [0.08, 0.62, -1.19, -2.57, -1.65, -1.57]
+  pos [1.4, 0.25, 0.3] yaw +0.00  worst flat over 0.25 m stroke 2.17 m/s, worst a_up 14.2  q [0.08, 0.62, -1.19, -2.57, -1.65, -1.57]
+  pos [1.3, -0.5, 0.3] yaw +0.00  worst flat over 0.25 m stroke 2.17 m/s, worst a_up 15.0  q [-0.7, 0.61, -1.18, -2.57, -0.87, -1.57]

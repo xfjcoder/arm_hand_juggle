@@ -1,0 +1,7 @@
+.lab/
+__pycache__/
+media_full/
+runs/
+data/
+*.egg-info/
+MUJOCO_LOG.TXT

@@ -1,0 +1,19 @@
+
+1977 palm-up poses (IK solved, no self-collision)
+  flat   median   1.60  90th pct   2.26  max   2.95
+  flick  median   2.64  90th pct   4.69  max   7.48
+  a_up   median  17.97  90th pct  24.22  max  39.13
+  a_down median  39.22  90th pct  43.34  max  58.35
+best poses by flat vertical speed:
+  pos [0.7, -0.5, 0.3] yaw +1.57  flat 2.95 m/s (apex 0.44 m, air 0.60 s)  flick 3.00  a_up 14  a_down 39
+  pos [0.7, -0.5, 0.3] yaw +1.57  flat 2.95 m/s (apex 0.44 m, air 0.60 s)  flick 3.00  a_up 14  a_down 39
+  pos [0.7, 0.5, 0.3] yaw -1.57  flat 2.95 m/s (apex 0.44 m, air 0.60 s)  flick 3.00  a_up 14  a_down 39
+  pos [0.7, 0.5, 0.3] yaw -1.57  flat 2.95 m/s (apex 0.44 m, air 0.60 s)  flick 3.00  a_up 14  a_down 39
+  pos [1.1, 0.0, 0.3] yaw +1.57  flat 2.88 m/s (apex 0.42 m, air 0.59 s)  flick 3.10  a_up 14  a_down 39
+  pos [1.1, 0.0, 0.3] yaw -1.57  flat 2.88 m/s (apex 0.42 m, air 0.59 s)  flick 3.12  a_up 13  a_down 39
+  pos [1.1, 0.0, 0.3] yaw -1.57  flat 2.88 m/s (apex 0.42 m, air 0.59 s)  flick 3.10  a_up 14  a_down 39
+  pos [1.1, 0.0, 0.3] yaw +1.57  flat 2.88 m/s (apex 0.42 m, air 0.59 s)  flick 3.10  a_up 14  a_down 39
+  poses reaching 2.0 m/s (1 ball): flat 369, flick 1550
+  poses reaching 2.5 m/s (2 balls): flat 44, flick 1110
+  poses reaching 3.4 m/s (3 balls (low)): flat 0, flick 511
+  poses reaching 4.5 m/s (3 balls (high)): flat 0, flick 238
