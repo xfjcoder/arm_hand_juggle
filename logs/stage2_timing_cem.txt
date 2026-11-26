@@ -1,0 +1,15 @@
+Two balls, one hand: best periodic cycle per (ball launch speed vz, empty time V); D = F - 2V.
+Ratios are peaks over the cycle against the UR10e limits (quintic segments, inverse dynamics with the hand).
+
+vz 4.5 m/s  apex 1.03 m  F 0.92 s  V 0.22  D 0.48 | speed 0.95 (wrist_1)  torque 0.95 (elbow)
+vz 5.0 m/s  apex 1.27 m  F 1.02 s  V 0.26  D 0.50 | speed 0.96 (wrist_1)  torque 0.95 (elbow)
+vz 4.5 m/s  apex 1.03 m  F 0.92 s  V 0.26  D 0.40 | speed 0.96 (wrist_1)  torque 0.95 (shoulder_lift)
+vz 5.5 m/s  apex 1.54 m  F 1.12 s  V 0.26  D 0.60 | speed 0.99 (wrist_1)  torque 0.98 (elbow)
+vz 5.0 m/s  apex 1.27 m  F 1.02 s  V 0.22  D 0.58 | speed 1.01 (shoulder_lift)  torque 1.00 (elbow)
+vz 5.5 m/s  apex 1.54 m  F 1.12 s  V 0.30  D 0.52 | speed 1.02 (wrist_1)  torque 1.01 (elbow)
+vz 4.5 m/s  apex 1.03 m  F 0.92 s  V 0.30  D 0.32 | speed 1.02 (wrist_1)  torque 1.02 (shoulder_lift)
+vz 5.0 m/s  apex 1.27 m  F 1.02 s  V 0.30  D 0.42 | speed 1.02 (wrist_1)  torque 1.02 (elbow)
+vz 5.5 m/s  apex 1.54 m  F 1.12 s  V 0.22  D 0.68 | speed 1.07 (wrist_1)  torque 1.07 (elbow)
+vz 5.0 m/s  apex 1.27 m  F 1.03 s  V 0.34  D 0.35 | speed 1.07 (wrist_1)  torque 1.07 (elbow)
+vz 5.5 m/s  apex 1.54 m  F 1.12 s  V 0.34  D 0.44 | speed 1.08 (wrist_1)  torque 1.08 (elbow)
+vz 4.5 m/s  apex 1.03 m  F 0.94 s  V 0.34  D 0.26 | speed 1.12 (wrist_1)  torque 1.13 (elbow)
