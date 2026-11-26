@@ -36,6 +36,11 @@ from scipy.optimize import minimize
 P = [1, 2, 3]          # the planar chain: shoulder_lift, elbow, wrist_1
 
 
+def side_dir(d_out):
+    """Catch point offset from the throw point: a number is outward along world x; or an (x, y) offset."""
+    return np.r_[d_out, 0.0, 0.0] if np.ndim(d_out) == 0 else np.r_[d_out[0], d_out[1], 0.0]
+
+
 def cycle_check(J, pl, c, rel, s, V, D, d_out, acc=None, n=60, dz=0.0, k=None):
     """Peak speed ratio, peak torque ratio, the lowest vertical acceleration of the ball point while the ball
     is held (dwell, before the last 10%) and the release acceleration (end of the dwell) for one cycle.
@@ -51,11 +56,11 @@ def cycle_check(J, pl, c, rel, s, V, D, d_out, acc=None, n=60, dz=0.0, k=None):
     if dz:
         F = (v_r[2] + np.sqrt(v_r[2] ** 2 - 2 * G * dz)) / G
         D = F - 2 * V
-    side = np.array([1.0, 0.0, 0.0]) * d_out / F         # outward drift (world x: away from the column)
+    side = side_dir(d_out) / F                         # the ball drifts from the throw to the catch point
     qd_r = qd_r + np.linalg.solve(Jm, np.r_[side, 0, 0, 0])
     p_r = pl.ball_point(q_r)
-    hit = p_r + np.r_[d_out, 0.0, dz]
-    v_hit = np.r_[side[0], 0.0, v_r[2] - G * F]
+    hit = p_r + side_dir(d_out) + np.r_[0.0, 0.0, dz]
+    v_hit = np.r_[side[0], side[1], v_r[2] - G * F]
     k0 = c.k
     if k is not None:
         c.k = k
@@ -220,3 +225,26 @@ def cem_search(J, pl, c, q_rel, vz, V, d_out, z0, sig0, pop=64, elite=8, gens=60
             best = (C[idx[0]], Z[idx[0]])
         mu, sig = Z[idx].mean(0), 0.7 * sig + 0.3 * Z[idx].std(0)
     return best[1], run(best[1], n=60)
+
+
+def cycle_states(J, pl, c, q_rel, z, vz, V, d_out):
+    """The nominal cycle for a CEM solution z (cem_search): release and catch states, timing, catch point."""
+    ac, ar, dz, k, dq, w = z[:3], z[3:6], -abs(z[6]), float(np.clip(z[7], 0.0, 1.0)), np.clip(z[8:11], -0.4, 0.4), z[11]
+    q_r, qd_r, qdd_r = release_state(J, pl, q_rel, dq, vz, w, ar)
+    J.ball_off = c.ball_off
+    Jm = pl.jac6(q_r)
+    v_r = Jm[:3] @ qd_r
+    dz = dz or -1e-6
+    F = (v_r[2] + np.sqrt(v_r[2] ** 2 - 2 * G * dz)) / G
+    side = side_dir(d_out) / F
+    qd_r = qd_r + np.linalg.solve(Jm, np.r_[side, 0, 0, 0])
+    p_r = pl.ball_point(q_r)
+    hit = p_r + side_dir(d_out) + np.r_[0.0, 0.0, dz]
+    v_hit = np.r_[side[0], side[1], v_r[2] - G * F]
+    k0, c.k = c.k, k
+    q_c, qd_c, qdd_c = c.catch_state(hit, v_hit)
+    qdd_c = qdd_c.copy()
+    qdd_c[P] = np.asarray(ac) * 10
+    c.k = k0
+    return dict(rel=(q_r, qd_r, qdd_r), catch=(q_c, qd_c, qdd_c), V=V, D=F - 2 * V, F=F, k=k, qdd_c=qdd_c,
+                p_rel=p_r, hit=hit, v_rel=Jm[:3] @ qd_r, v_hit=v_hit, d_out=d_out)

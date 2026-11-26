@@ -30,6 +30,11 @@ FLAT = dict(CUP, **{"rh_A_THJ4": 0.2, "rh_A_THJ1": 0.0, "rh_A_THJ5": 0.0,
 HOLD = dict(CUP, **{"rh_A_THJ4": 1.2, "rh_A_THJ5": 0.0, "rh_A_THJ2": 0.0, "rh_A_THJ1": 0.0,
                     "rh_A_FFJ3": 0.7, "rh_A_FFJ0": 0.9, "rh_A_MFJ3": 0.7, "rh_A_MFJ0": 0.9,
                     "rh_A_RFJ3": 0.7, "rh_A_RFJ0": 0.9, "rh_A_LFJ3": 0.7, "rh_A_LFJ0": 0.9, "rh_A_LFJ5": 0.5})
+# Stage 2: the fingers closed over the ball, thumb opposed, so it cannot roll off while the hand carries it
+# sideways between catch and throw (a palm tilt against the roll would need ~3 rad/s of wrist, not available)
+CAGE = dict(HOLD, **{"rh_A_THJ5": 0.6, "rh_A_THJ4": 1.2, "rh_A_THJ2": 0.3, "rh_A_THJ1": 0.6,
+                     "rh_A_FFJ3": 1.1, "rh_A_FFJ0": 1.5, "rh_A_MFJ3": 1.1, "rh_A_MFJ0": 1.5,
+                     "rh_A_RFJ3": 1.1, "rh_A_RFJ0": 1.5, "rh_A_LFJ3": 1.1, "rh_A_LFJ0": 1.5, "rh_A_LFJ5": 0.6})
 # Stage 0 throwing pose: palm at (1.0, 0, 0.3), palm up, fingers along +y (logs/stage0_speed.json)
 POSE_Q = np.array([-0.5721, -0.5549, 0.7827, -0.2278, -0.5721, 1.5708])
 POSE_R = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]], float)   # palm frame columns in world at POSE_Q
@@ -82,6 +87,7 @@ class Juggler:
         self.cup = self.posture(CUP)
         self.flat = self.posture(FLAT)
         self.hold = self.posture(HOLD)
+        self.cage = self.posture(CAGE)
         self.hand_target = self.cup
         self.R_d = POSE_R
         self.stats = dict(qd_ratio=0.0, tau_sat=0, steps=0)

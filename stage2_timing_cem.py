@@ -9,7 +9,9 @@ from cem_catch import Catcher
 from planner import Planner
 from robolab import evalpool
 NAMES = ["shoulder_pan", "shoulder_lift", "elbow", "wrist_1", "wrist_2", "wrist_3"]
-grid = [(vz, V) for vz in (4.5, 5.0, 5.5) for V in (0.22, 0.26, 0.30, 0.34)]
+import sys
+D_OUT = [float(a) for a in sys.argv[1:3]] if len(sys.argv) > 2 else (float(sys.argv[1]) if len(sys.argv) > 1 else 0.10)
+grid = [(vz, V) for vz in (4.5, 5.0) for V in (0.20, 0.22, 0.24, 0.26, 0.28, 0.30)]
 def job2(i):
     vz, V = grid[i]
     x, cp, off = stage1_juggle.load("runs/catch5_v443.json")
@@ -21,10 +23,10 @@ def job2(i):
     Jm = pl.jac6(q); axis = Jm[3:, 1] / np.linalg.norm(Jm[3:, 1]); w_r = float(axis @ (Jm[3:] @ qd))
     z0 = np.r_[c.qdd_c[st.P] / 10, qdd[st.P] / 10, 0.05, 0.75, 0, 0, 0, w_r]
     sig = np.r_[np.full(6, 1.0), 0.05, 0.1, 0.1, 0.1, 0.1, 1.0]
-    z, r = st.cem_search(J, pl, c, q_rel, vz, V, 0.10, z0, sig, seed=i)
-    return dict(vz_set=vz, V=V, z=z.tolist(), w0=w_r, **{k: (float(v) if not isinstance(v, int) else v) for k, v in r.items()})
+    z, r = st.cem_search(J, pl, c, q_rel, vz, V, D_OUT, z0, sig, seed=i)
+    return dict(vz_set=vz, V=V, d_out=D_OUT, z=z.tolist(), w0=w_r, **{k: (float(v) if not isinstance(v, int) else v) for k, v in r.items()})
 R = evalpool.evaluate(job2, range(len(grid)), procs=12)
-json.dump(R, open("logs/stage2_timing_cem.json", "w"))
+json.dump(R, open(f"logs/stage2_timing_cem_d{str(D_OUT).replace(' ', '')}.json", "w"))
 for r in sorted(R, key=lambda r: max(r["speed"], r["torque"])):
     z = r["z"]
     print(f"vz {r['vz']:.1f} V {r['V']:.2f} | F {r['F']:.2f} D {r['D']:.2f} | speed {r['speed']:.2f} ({NAMES[r['js']]}) "
