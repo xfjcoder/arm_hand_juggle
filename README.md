@@ -146,6 +146,12 @@ Remaining drops on the fresh seeds:
 
 ## Stage 1 with realistic sensing (passed, narrowly)
 
+![stage 1 with realistic sensors](media/stage1_sensors_real.gif)
+
+Left: outside view. Right: the tracking camera's own view, from where the occlusion ray casts start. The green
+marker is the newest camera fix the controller has; it trails the ball by the 20 ms delay. While the ball is in
+the hand, the tactile skin takes over. Eight catches in a row, same disturbances as above.
+
 `sensing.py` replaces what the controller knows about the ball with sensor models. `--sensors ideal|real` turns
 it on; without the flag, the Stage 1 code path above runs unchanged.
 - **Camera** (in flight): the ball's 3-D position at a frame rate, delivered after a delay. A frame is lost when
@@ -192,4 +198,5 @@ PYTHONPATH=. MUJOCO_GL=egl python3 stage1_juggle.py --catch runs/catch5_v443.jso
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_v443.json             # seeds 50000+
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --seed0 90000 --catch runs/catch5_v443.json --out logs/stage1_verify_90000.jsonl
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_v443.json --sensors real --out logs/stage1_sensors_real.jsonl
+PYTHONPATH=. MUJOCO_GL=egl python3 stage1_juggle.py --catch runs/catch5_v443.json --cycles 8 --seed 50001 --kick 0.05 --noise 0.002 --sensors real --gif media_full/stage1_sensors_real.gif
 ```

@@ -22,7 +22,7 @@ from cem_catch import Catcher
 from juggle import G, Seg
 from inhand import InHand
 from planner import BallFit, Planner
-from sensing import Sensors
+from sensing import Sensors, render_views
 
 
 def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at=0.85, seed=None, noise=0.0,
@@ -224,14 +224,19 @@ def main():
     a = ap.parse_args()
     x, cp, off = load(a.catch)
     J = juggle.Juggler(1, human=True)
+    sensors = Sensors(J, a.sensors, seed=a.seed, noise=a.noise) if a.sensors else None
     frames = None
     if a.gif:
-        J.renderer = mj.Renderer(J.m, 720, 540)              # portrait, framing the palm and the 1.1 m apex
+        J.renderer = mj.Renderer(J.m, 720, 540)              # portrait: the cocked palm (z -0.7) to the apex (1.1)
         render = J.render
-        J.render = lambda: render(distance=2.3, azimuth=160, elevation=-6, lookat=[1.0, 0.2, 0.55])
+        outside = dict(distance=3.1, azimuth=160, elevation=-6, lookat=[1.0, 0.2, 0.2])
+        if sensors:                                          # plus what the tracking camera sees
+            J.render = lambda: render_views(J, J.renderer, sensors, render(**outside))
+        else:
+            J.render = lambda: render(**outside)
         frames = []
     out = juggle_run(J, x, cp, off, cycles=a.cycles, frames=frames, log=print, seed=a.seed, kick=a.kick, noise=a.noise,
-                     inhand=not a.no_inhand, settle_max=1.0, sensors=a.sensors,
+                     inhand=not a.no_inhand, settle_max=1.0, sensors=sensors,
                      z_release=release_height(a.catch))
     print(json.dumps({k: v for k, v in out.items() if k not in ("releases", "spots")}))
     if a.gif:

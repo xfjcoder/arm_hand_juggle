@@ -34,7 +34,11 @@ PRESETS = {
 }
 
 
-def camera_pos(lookat=(1.0, 0.2, 0.4), distance=2.5, azimuth=160.0, elevation=-20.0):
+CAMERA_VIEW = dict(lookat=(1.0, 0.2, 0.4), distance=2.5, azimuth=160.0, elevation=-20.0)
+
+
+def camera_pos(lookat=CAMERA_VIEW["lookat"], distance=CAMERA_VIEW["distance"], azimuth=CAMERA_VIEW["azimuth"],
+               elevation=CAMERA_VIEW["elevation"]):
     """Position of a camera aimed at `lookat` (MuJoCo free-camera convention)."""
     a, e = np.radians(azimuth), np.radians(elevation)
     fwd = np.array([np.cos(e) * np.cos(a), np.cos(e) * np.sin(a), np.sin(e)])
@@ -54,6 +58,7 @@ class Camera:
     def reset(self):
         self.next_t, self.queue = -1.0, deque()
         self.frames = self.hidden = self.dropped = 0
+        self.last, self.status = None, None          # newest delivered frame, fate of the newest capture
 
     def visible(self):
         p = self.J.ball(self.ball)[0]
@@ -70,13 +75,18 @@ class Camera:
             p = self.J.ball(self.ball)[0] + (self.rng.normal(0, self.noise, 3) if self.noise else 0)
             if self.occlusion and not self.visible():
                 self.hidden += 1
+                self.status = "hidden"
             elif self.drop and self.rng.random() < self.drop:
                 self.dropped += 1
+                self.status = "dropped"
             else:
                 self.queue.append((t, p))
+                self.status = "ok"
         out = []
         while self.queue and self.queue[0][0] + self.latency <= t + 1e-9:
             out.append(self.queue.popleft())
+        if out:
+            self.last = out[-1]
         return out
 
 
@@ -138,3 +148,31 @@ class Sensors:
         self.camera = Camera(J, rng, noise=noise, **dict(cfg["camera"], **(camera or {})))
         self.tactile = Tactile(J, rng, **dict(cfg["tactile"], **(tactile or {})))
         self.preset = preset
+
+
+def render_views(J, renderer, sensors, left):
+    """Side by side: the outside view (image `left`) and the tracking camera's view, with what the
+    controller gets drawn in: the newest delivered camera frame (green; it trails the ball by the latency) and
+    a status line."""
+    from PIL import Image, ImageDraw, ImageFont
+    cam_, tac = sensors.camera, sensors.tactile
+    v = mj.MjvCamera()
+    v.lookat[:] = CAMERA_VIEW["lookat"]
+    v.distance, v.azimuth, v.elevation = CAMERA_VIEW["distance"], CAMERA_VIEW["azimuth"], CAMERA_VIEW["elevation"]
+    renderer.update_scene(J.d, v)
+    scn = renderer.scene
+    touching = tac.last is not None and tac.last[1]
+    if cam_.last is not None and not touching and scn.ngeom < scn.maxgeom:
+        mj.mjv_initGeom(scn.geoms[scn.ngeom], mj.mjtGeom.mjGEOM_SPHERE, np.r_[scene.BALL_RADIUS * 0.8, 0, 0],
+                        cam_.last[1], np.eye(3).ravel(), np.array([0.1, 1.0, 0.2, 0.8], np.float32))
+        scn.geoms[scn.ngeom].emission = 0.8                    # bright regardless of the lighting
+        scn.ngeom += 1
+    right = Image.fromarray(renderer.render())
+    dr = ImageDraw.Draw(right)
+    font = ImageFont.load_default(size=20)
+    status = {"ok": "tracked", "hidden": "HIDDEN by the hand", "dropped": "frame dropped"}.get(cam_.status, "")
+    dr.text((12, 10), "tracking camera  120 Hz, 20 ms delay", fill=(255, 255, 255), font=font)
+    dr.text((12, 36), "green: latest fix the controller has", fill=(120, 255, 140), font=font)
+    dr.text((12, 62), ("in hand: tactile skin" if touching else "in flight: ") + ("" if touching else status),
+            fill=(255, 220, 120), font=font)
+    return np.concatenate([left, np.asarray(right)], axis=1)
