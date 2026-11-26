@@ -192,7 +192,9 @@ def main():
     J = juggle.Juggler(1, human=True)
     frames = None
     if a.gif:
-        J.renderer = mj.Renderer(J.m, 480, 640)
+        J.renderer = mj.Renderer(J.m, 720, 540)              # portrait, framing the palm and the 1.1 m apex
+        render = J.render
+        J.render = lambda: render(distance=2.3, azimuth=160, elevation=-6, lookat=[1.0, 0.2, 0.55])
         frames = []
     out = juggle_run(J, x, cp, off, cycles=a.cycles, frames=frames, log=print, seed=a.seed, kick=a.kick, noise=a.noise,
                      inhand=not a.no_inhand, settle_max=1.0)

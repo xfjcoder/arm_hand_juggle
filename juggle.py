@@ -192,10 +192,10 @@ class Juggler:
             if record is not None and k % every == 0:
                 record(self)
 
-    def render(self, distance=1.6, azimuth=160, elevation=-12, lookat_dz=0.35):
-        """One RGB frame from a fixed camera aimed above the home palm position (needs self.renderer)."""
+    def render(self, distance=1.6, azimuth=160, elevation=-12, lookat_dz=0.35, lookat=None):
+        """One RGB frame from a fixed camera aimed above the home palm position, or at `lookat` (needs self.renderer)."""
         cam = mj.MjvCamera()
-        cam.lookat[:] = self.p_home + [0, 0, lookat_dz]
+        cam.lookat[:] = self.p_home + [0, 0, lookat_dz] if lookat is None else lookat
         cam.distance, cam.azimuth, cam.elevation = distance, azimuth, elevation
         self.renderer.update_scene(self.d, cam)
         return self.renderer.render()
