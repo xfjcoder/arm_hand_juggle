@@ -62,10 +62,61 @@ Bugs found and fixed on the way to these numbers:
 Comparisons are in `logs/stage0_release_grid.txt`. The 8 variants there land between 109 and 117 of 120, mostly
 within noise of each other. The clear gain is that release speed matches the command once the hand opens.
 
+## Stage 1: continuous one-ball juggling, human-style arm, 1 m tosses (in progress)
+
+![stage 1 juggling](media/stage1_juggle.gif)
+
+Six cycles in a row with 1 m-high tosses, no noise. Joint speed peaks at 0.86 of the UR10e limits, with no
+torque saturation.
+
+**Arm pose.** The upper arm hangs and the elbow is bent. The base sits on a 1.45 m column. The shoulder_lift,
+elbow and wrist_1 joints have parallel axes, so they form a planar 3-joint chain whose speeds add at the palm,
+like a human elbow and wrist flick. The same LP as in Stage 0 gives 6.1-6.4 m/s of palm speed in this pose
+family, against 2.2-2.95 m/s for the level-palm layout (`logs/stage1_planar_speed.txt`). A 1 m apex needs
+4.4 m/s.
+
+**Throw** (`human.py`, `cem_throw.py`). Quintic joint segments: cock, release, brake.
+- SLSQP on a rigid-ball model gives the starting plan. That model misses the ball rolling on the turning palm
+  (a ~0.8 m/s forward fling).
+- CEM then tunes 13 parameters, each candidate scored in the full simulation.
+- The throw is scored from all three spots where the ball can rest in the hand
+  (`runs/throw2_v443.json`). Worst release: (0.01, 0.04, 4.51) m/s.
+
+**Catch** (`cem_catch.py`).
+- Running the throw in reverse does not work as a catch: the palm's sideways motion slides the falling ball
+  off. The catch is its own design:
+  - Just before arrival, the palm goes to where the ball will be, moving down with it and sideways at the
+    ball's horizontal speed.
+  - A dip then takes it back to the cocked pose while the fingers curl.
+- CEM tunes 8 parameters. The cost includes how far the ball comes to rest from the spot the throw starts
+  from, so the cycle closes on itself.
+- The ball is tracked from noisy positions with a least-squares parabola fit, never from the simulator's true
+  velocity.
+
+**What went wrong on the way:**
+- The ball sometimes came to rest wedged between the thumb and first finger, and the throw from there flew
+  0.2-0.4 m/s sideways. With the thumb curled along the palm edge as a wall, that resting spot is gone.
+- The thrown ball spins at 20-30 rad/s. Catch tests with dropped, non-spinning balls passed while real cycles
+  failed. The catch is now tuned on 178 real apex ball states recorded from juggling runs
+  (`collect_apex.py`, `data/apex_bank.json`).
+- With fewer than 20 ms of samples, the parabola fit reported zero velocity and planned an impossible motion.
+  The planner now waits until the fit has enough samples.
+
+**Robustness** (`stage1_robust.py`, 120 fresh seeds from 50000). Each throw gets a random velocity kick of
+N(0, 0.05 m/s) per axis, there is 2 mm of position noise, and the ball's start is jittered. A planned motion over
+the joint speed limits counts as a drop.
+
+| catch | median catches in a row | mean | reach 30/30 | within joint limits |
+|---|---|---|---|---|
+| catch4 (tuned on random spin-free drops) | 1 | 4.1 | 3/120 | 118/120 |
+| catch5 (tuned on real apex states) | **4** | 7.4 | 6/120 | 120/120 |
+
+Noise-free, the cycle runs 30/30. The pass criterion (median of 20 or more) is **not met yet**. The next levers
+are a spin penalty in the throw cost and repeating the record-and-retune loop with the current catch.
+
 ## Next
 
-- **Stage 1:** juggle one ball continuously. Pass means a median of 20 or more catches in a row over 120 seeds,
-  within the joint limits. This needs re-centring after off-centre catches and a joined catch-throw cycle.
+- **Stage 1:** pass means a median of 20 or more catches in a row over 120 seeds, within the joint limits.
 - **Stage 2:** two balls in one hand.
 - **Stage 3:** three balls, decided using the speed numbers above.
 
@@ -73,4 +124,6 @@ within noise of each other. The clear gain is that release speed matches the com
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_speed.py              # throw-speed feasibility (~35 s)
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_toss.py --gif media_full/stage0_toss.gif
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_robust.py --n 120     # needs robolab (pip install -e ~/robo/robolab)
+PYTHONPATH=. MUJOCO_GL=egl python3 stage1_juggle.py --catch runs/catch5_v443.json --cycles 6 --gif media_full/stage1_juggle.gif
+PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_v443.json
 ```
