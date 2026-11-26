@@ -185,10 +185,57 @@ it on; without the flag, the Stage 1 code path above runs unchanged.
   23 of the 120 fresh-seed runs, against 5 with ideal sensing). Delayed, sparser camera data means a later,
   faster correction. Stage 2 will need earlier catch planning or more margin.
 
+## Stage 2a: two balls in one hand (stopped: at the arm's limits)
+
+![two balls, one hand: the three cycles tried](media/stage2_onehand.gif)
+
+The two-ball loop with each cycle tried, about 1/8 speed (red: ball 1, blue: ball 2, fed one cycle behind).
+1: the open palm loses the caught ball in the carry. 2: the cage grip, tuned without hard limits, moves the
+arm at 1.58x its speed limits and still cannot reach the next catch. 3: with the limits enforced, ball 2 is
+caught and held, but re-thrown at 1.4 m/s instead of 4.5.
+
+**The timing.** With two balls in one hand, each ball flies F = 2V + D: the hand holds a ball for the dwell D
+(catch, carry, throw) and is empty for V (from a throw to the next catch). A 1 m toss flies 0.92 s. Stage 1's
+catch-to-throw takes 1.5-2.4 s (a long dip, settling in the hand, a 0.35 s stroke from rest), so the cycle
+has to be redesigned, about four times faster.
+
+**Gate** (`stage2_timing.py`, `stage2_timing_cem.py`). A periodic hand motion of two quintic joint segments,
+release -> catch -> release, checked for joint speeds, joint torques (inverse dynamics with the hand) and the
+palm not pulling away from the held ball.
+
+| cycle | peak joint speed / limit | peak torque / limit |
+|---|---|---|
+| Stage 1 throw and catch states, squeezed in time | 1.09 or more | 1.09 or more |
+| throw and catch co-designed (CEM), catch 0.10 m outward | 0.95 | 0.95 |
+| same, catch 0.20 m to the side (world y) | **0.92** | **0.91** |
+
+The best: 1 m tosses, V = 0.22 s, D = 0.48 s, about 1.4 throws per second. Feasible on paper, with
+almost no margin for correcting imperfect throws (Stage 1's catch corrections already reach 0.97).
+
+**Full simulation** (`stage2_juggle.py`, `stage2_cem.py`). What went wrong, in order:
+- With the catch 0.10 m outward, the rising and falling balls passed 1.6 cm apart and collided. 0.20 m to
+  the side leaves about 9 cm and costs the arm less (it uses the otherwise idle shoulder_pan).
+- The fed second ball, put in flight only 0.22 s before its catch, had too short a camera track and was
+  predicted 3 cm off. It is now fed one cycle earlier.
+- The carry pushes the ball sideways at up to 9.5 m/s^2 against 10-15 m/s^2 into the palm, so it rolls
+  across the open palm and off, while the palm turns about 40 degrees for the release.
+- Tilting the palm against the roll needs about 3 rad/s of extra wrist speed. The wrist has none to spare.
+- A cage grip (fingers closed over the ball, thumb opposed; `juggle.CAGE`) holds the ball. A CEM over one
+  catch-carry-throw unit found it held 6 of 6, but only at 1.70x the joint speed limits, throwing at 3 m/s.
+- With the limits as a hard failure, the ball stays in the cage through the carry but slips out early in
+  the throw stroke, at 1-2.4 m/s instead of 4.5.
+
+**Conclusion.** Two balls in one hand is at the edge of what this arm and hand can do. The arm (120/180 deg/s
+joints carrying a 3.8 kg hand) leaves about 8% margin for a perfect cycle, and none of the simple ways to keep
+the ball seated (palm tilt, finger cage, CEM-tuned timing) fit inside it. Not proven impossible: a hand
+motion optimised together with the ball in the hand, a throw designed from scratch for the short carry, or a
+funnel-shaped hand (as in Ploeger et al. 2020) might. Three balls in one hand would need ~7 m/s throws and is
+out of reach, so the project moves to two arms, where each hand gets far more time per ball.
+
 ## Next
 
-- **Stage 2:** two balls in one hand, developed with the realistic sensors on (ideal sensing as a debug switch).
-- **Stage 3:** three balls, decided using the speed numbers above.
+- **Stage 2b:** a second UR10e + Shadow Hand facing the first; two balls with two hands, then
+  **Stage 3:** three balls (a cascade). Starts with the same kind of feasibility gate for two-hand patterns.
 
 ```
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_speed.py              # throw-speed feasibility (~35 s)
@@ -199,4 +246,7 @@ PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --seed0 90000 --catch runs/catch5_v443.json --out logs/stage1_verify_90000.jsonl
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_v443.json --sensors real --out logs/stage1_sensors_real.jsonl
 PYTHONPATH=. MUJOCO_GL=egl python3 stage1_juggle.py --catch runs/catch5_v443.json --cycles 8 --seed 50001 --kick 0.05 --noise 0.002 --sensors real --gif media_full/stage1_sensors_real.gif
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_timing_cem.py 0 0.2      # two balls, one hand: periodic-cycle gate (~3 min)
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_cem.py --gens 50 --out runs/cycle2_v2.json   # catch-carry-throw unit CEM (~25 min)
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_onehand_gif.py media_full/stage2_onehand.gif
 ```
