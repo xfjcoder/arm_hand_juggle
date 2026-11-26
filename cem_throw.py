@@ -42,7 +42,7 @@ def simulate(x, v, T=0.35, Tb=0.2, open_at=0.85, ball_offset=(0.0, 0.0, 0.06), f
     J = J or juggle.Juggler(1, human=True)
     J.reset(q=th(0)[0], grip=J.hold, ball_offset=ball_offset, ball_spot=ball_spot)
     m, d = J.m, J.d
-    t, gap, rel = 0.0, 0, None
+    t, gap, rel, off = 0.0, 0, None, None
     p_start = J.ball()[0]
     while t < T + Tb + 0.05:
         q, qd, qdd = th(t) if t < T else br(t)
@@ -75,9 +75,13 @@ def cost_of(r, v):
 
 
 def evaluate_one(i, pop, v, ball_spot=None):
-    r = simulate(pop[i], v, ball_spot=ball_spot)
-    return dict(cost=cost_of(r, v), rel=None if r["release"] is None else r["release"]["v"].round(3).tolist(),
-                qd=round(r["qd_ratio"], 3), sat=round(r["tau_sat"], 4))
+    """Cost of one candidate; with a list of start spots, the mean over throws from each (worst release shown)."""
+    spots = ball_spot if ball_spot is not None and np.ndim(ball_spot) == 2 else [ball_spot]
+    rs = [simulate(pop[i], v, ball_spot=s) for s in spots]
+    cs = [cost_of(r, v) for r in rs]
+    w = rs[int(np.argmax(cs))]
+    return dict(cost=float(np.mean(cs)), rel=None if w["release"] is None else w["release"]["v"].round(3).tolist(),
+                qd=round(max(r["qd_ratio"] for r in rs), 3), sat=round(max(r["tau_sat"] for r in rs), 4))
 
 
 def cem(v, x0, sigma0, iters=25, pop=48, elite=8, procs=12, seed=0, log=print, ball_spot=None):
@@ -111,7 +115,11 @@ def main():
     ap.add_argument("--out", default="runs/throw.json")
     ap.add_argument("--init", help="start from this throw's parameters instead of the SLSQP plan")
     ap.add_argument("--ball-spot", type=float, nargs=3, help="ball start position in the palm frame (m)")
+    ap.add_argument("--ball-spots", type=float, nargs="+",
+                    help="several start positions (x y z ...), the cost averaged over throws from each")
     a = ap.parse_args()
+    if a.ball_spots:
+        a.ball_spot = np.reshape(a.ball_spots, (-1, 3)).tolist()
     J = juggle.Juggler(1, human=True)
     J.reset(q=human.Q_REL)
     if a.init:

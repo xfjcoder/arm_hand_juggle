@@ -45,3 +45,31 @@ class Planner:
             Jm = self.jac6(q)
             q = q + Jm.T @ np.linalg.solve(Jm @ Jm.T + 1e-4 * np.eye(6), e)
         return q
+
+
+class BallFit:
+    """Least-squares ballistic fit of the measured ball positions since release: the position and velocity
+    used for planning come from the fit, not from one (noisy) sample or the simulator's true velocity."""
+
+    def __init__(self, g=9.81, window=0.5):
+        self.g, self.window = g, window
+        self.t, self.p = [], []
+
+    def ready(self, span=0.02):
+        """Enough samples (at least `span` seconds of them) for a usable velocity."""
+        return len(self.t) > 1 and self.t[-1] - self.t[0] >= span
+
+    def add(self, t, p):
+        self.t.append(t)
+        self.p.append(np.array(p, float))
+
+    def state(self, t):
+        ts = np.array(self.t)
+        keep = ts >= ts[-1] - self.window
+        ts, ps = ts[keep] - t, np.array(self.p)[keep]
+        ps = ps + np.outer(0.5 * self.g * ts ** 2, [0, 0, 1])     # remove gravity: p + g s^2/2 = p0 + v0 s
+        A = np.c_[np.ones_like(ts), ts]
+        if len(ts) < 2:
+            return ps[-1], np.zeros(3)
+        c, *_ = np.linalg.lstsq(A, ps, rcond=None)
+        return c[0], c[1]

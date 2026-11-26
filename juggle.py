@@ -24,8 +24,11 @@ CUP = {"rh_A_WRJ2": 0.0, "rh_A_WRJ1": 0.0,
 FLAT = dict(CUP, **{"rh_A_THJ4": 0.2, "rh_A_THJ1": 0.0, "rh_A_THJ5": 0.0,
                     "rh_A_FFJ3": 0.0, "rh_A_FFJ0": 0.0, "rh_A_MFJ3": 0.0, "rh_A_MFJ0": 0.0,
                     "rh_A_RFJ3": 0.0, "rh_A_RFJ0": 0.0, "rh_A_LFJ5": 0.0, "rh_A_LFJ3": 0.0, "rh_A_LFJ0": 0.0})
-# deeper cup for holding the ball while the palm is tilted fingers-down (human-style cocked pose)
-HOLD = dict(CUP, **{"rh_A_FFJ3": 0.7, "rh_A_FFJ0": 0.9, "rh_A_MFJ3": 0.7, "rh_A_MFJ0": 0.9,
+# deeper cup for holding the ball while the palm is tilted fingers-down (human-style cocked pose); the thumb
+# curls across the palm edge as a wall: with the thumb across the palm the ball could wedge between thumb
+# and first finger, off the palm, and a throw from there flies 0.2-0.4 m/s sideways
+HOLD = dict(CUP, **{"rh_A_THJ4": 1.2, "rh_A_THJ5": 0.0, "rh_A_THJ2": 0.0, "rh_A_THJ1": 0.0,
+                    "rh_A_FFJ3": 0.7, "rh_A_FFJ0": 0.9, "rh_A_MFJ3": 0.7, "rh_A_MFJ0": 0.9,
                     "rh_A_RFJ3": 0.7, "rh_A_RFJ0": 0.9, "rh_A_LFJ3": 0.7, "rh_A_LFJ0": 0.9, "rh_A_LFJ5": 0.5})
 # Stage 0 throwing pose: palm at (1.0, 0, 0.3), palm up, fingers along +y (logs/stage0_speed.json)
 POSE_Q = np.array([-0.5721, -0.5549, 0.7827, -0.2278, -0.5721, 1.5708])
