@@ -62,12 +62,12 @@ Bugs found and fixed on the way to these numbers:
 Comparisons are in `logs/stage0_release_grid.txt`. The 8 variants there land between 109 and 117 of 120, mostly
 within noise of each other. The clear gain is that release speed matches the command once the hand opens.
 
-## Stage 1: continuous one-ball juggling, human-style arm, 1 m tosses (in progress)
+## Stage 1: continuous one-ball juggling, human-style arm, 1 m tosses (passed)
 
 ![stage 1 juggling](media/stage1_juggle.gif)
 
-Six cycles in a row with 1 m-high tosses, no noise. Joint speed peaks at 0.86 of the UR10e limits, with no
-torque saturation.
+Eight catches in a row with 1 m-high tosses, under the test disturbances: a random velocity kick on every throw
+and 2 mm noise on the ball tracker. Joint speed peaks at 0.86 of the UR10e limits, with no torque saturation.
 
 **Arm pose.** The upper arm hangs and the elbow is bent. The base sits on a 1.45 m column. The shoulder_lift,
 elbow and wrist_1 joints have parallel axes, so they form a planar 3-joint chain whose speeds add at the palm,
@@ -101,22 +101,54 @@ family, against 2.2-2.95 m/s for the level-palm layout (`logs/stage1_planar_spee
   (`collect_apex.py`, `data/apex_bank.json`).
 - With fewer than 20 ms of samples, the parabola fit reported zero velocity and planned an impossible motion.
   The planner now waits until the fit has enough samples.
+- Even after a clean catch, three quarters of the remaining drops happened later: the ball kept its leftover
+  sideways speed and spin, rolled across the nearly flat palm and went over the thumb-side edge about 0.5 s
+  after the catch. The fix is in-hand feedback (below).
+- The first version of that feedback chased sensor noise at its rate limit. It caught as well, but it
+  overshot wrist_3's speed limit (1.16x). Filtering, a cap on tilt acceleration with feedforward, and a
+  joint-speed budget fixed it.
+- When the ball slipped off early in a throw, the controller switched to flight mode and asked the brake
+  segment for a time before it had started. The arm's target jumped and the shoulder overshot to 1.48x its
+  limit. The arm now finishes the throw, then brakes.
 
-**Robustness** (`stage1_robust.py`, 120 fresh seeds from 50000). Each throw gets a random velocity kick of
-N(0, 0.05 m/s) per axis, there is 2 mm of position noise, and the ball's start is jittered. A planned motion over
-the joint speed limits counts as a drop.
+**In-hand feedback** (`inhand.py`). From the catch until the next throw, the palm tilts about its finger axis
+against the ball's roll, like balancing a ball on a plate. The sensor is modelled on what a real hand could
+have (palm tactile sensors or a wrist camera): the ball's position in the palm at 100 Hz with 1 mm noise, and
+only while the ball touches the hand.
+- Wanted ball acceleration: a = -(kp e + kd v), where e is the offset from the throw's start spot.
+- A rolling ball accelerates at 5/7 of gravity's component along the palm, so the tilt is
+  dth = (7/5) a / g_normal.
+- The tilt is filtered and rate-limited to a joint-speed budget of 0.8 of the limits.
+- The next throw starts only when the sensor reads the ball at rest in the pocket.
 
-| catch | median catches in a row | mean | reach 30/30 | within joint limits |
-|---|---|---|---|---|
-| catch4 (tuned on random spin-free drops) | 1 | 4.1 | 3/120 | 118/120 |
-| catch5 (tuned on real apex states) | **4** | 7.4 | 6/120 | 120/120 |
+**Robustness** (`stage1_robust.py`). Runs are capped at 30 cycles.
+- Disturbances: each throw gets a random velocity kick of N(0, 0.05 m/s) per axis, and the ball tracker has
+  2 mm of position noise.
+- Start: the ball is placed in the hand up to 1 cm from its resting spot.
+- Joint limits: a planned motion above 0.97 of the joint speed limits counts as a drop, leaving room for
+  tracking error. The limits are also checked on the measured motion.
 
-Noise-free, the cycle runs 30/30. The pass criterion (median of 20 or more) is **not met yet**. The next levers
-are a spin penalty in the throw cost and repeating the record-and-retune loop with the current catch.
+| controller | seeds | median catches in a row | mean (95% CI) | reach 30/30 | within joint limits |
+|---|---|---|---|---|---|
+| catch4 (tuned on random spin-free drops) | 50000+ | 1 | 4.1 | 3/120 | 118/120 |
+| catch5 (tuned on real apex states) | 50000+ | 4 | 7.4 | 6/120 | 120/120 |
+| catch5 + in-hand feedback | 50000+ | **30** | 22.1 (20.2-24.0) | 68/120 | **120/120** |
+| catch5 + in-hand feedback, fresh seeds | 90000+ | **30** | 21.4 (19.4-23.4) | 62/120 | **120/120** |
+
+**Stage 1 passes** (median of 20 or more catches in a row, within the joint limits) on both the test seeds and
+seeds never used before. The early-start drops in the catch5 row were mostly a test artifact: the ball was
+dropped onto the hand up to 1.5 cm off-centre and sometimes not held.
+
+Remaining drops on the fresh seeds:
+- 32 runs: the ball fell after the catch.
+- 14 runs: the ball was not held.
+- 12 runs: the landing point was too far to reach within the speed limits.
 
 ## Next
 
-- **Stage 1:** pass means a median of 20 or more catches in a row over 120 seeds, within the joint limits.
+- **Sensor models before Stage 2.** Add camera latency, frame rate and dropouts while the ball is hidden by the
+  hand, and tactile contact readings in place of the ideal in-hand position. Stage 2's tighter timing should be
+  tuned with them.
 - **Stage 2:** two balls in one hand.
 - **Stage 3:** three balls, decided using the speed numbers above.
 
@@ -124,6 +156,7 @@ are a spin penalty in the throw cost and repeating the record-and-retune loop wi
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_speed.py              # throw-speed feasibility (~35 s)
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_toss.py --gif media_full/stage0_toss.gif
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_robust.py --n 120     # needs robolab (pip install -e ~/robo/robolab)
-PYTHONPATH=. MUJOCO_GL=egl python3 stage1_juggle.py --catch runs/catch5_v443.json --cycles 6 --gif media_full/stage1_juggle.gif
-PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_v443.json
+PYTHONPATH=. MUJOCO_GL=egl python3 stage1_juggle.py --catch runs/catch5_v443.json --cycles 8 --seed 50001 --kick 0.05 --noise 0.002 --gif media_full/stage1_juggle.gif
+PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --catch runs/catch5_v443.json             # seeds 50000+
+PYTHONPATH=. MUJOCO_GL=egl python3 stage1_robust.py --n 120 --seed0 90000 --catch runs/catch5_v443.json --out logs/stage1_verify_90000.jsonl
 ```

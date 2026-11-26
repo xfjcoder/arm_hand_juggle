@@ -1,6 +1,7 @@
 """Stage 1 check: continuous one-ball juggling (1 m tosses) over many randomised seeds.
 
-Per seed: the ball dropped into the hand up to 1.5 cm off-centre, a random velocity kick N(0, 0.05 m/s) per
+Per seed: the ball placed in the hand up to 1 cm from its resting spot (across the palm and along the fingers),
+a random velocity kick N(0, 0.05 m/s) per
 axis added to the ball at every release (throw-to-throw variation), 2 mm noise on the ball position the
 catch planner sees. Up to 30 cycles; a cycle counts when the ball is caught and at rest in the hand before
 the next throw. A run stops at the first drop, or as soon as a planned motion would exceed the UR10e joint
@@ -18,13 +19,14 @@ import stage1_juggle
 from robolab import evalpool
 
 
-def episode(seed, catch="runs/catch3_v443.json", cycles=30, kick=0.05, noise=0.002):
+def episode(seed, catch="runs/catch3_v443.json", cycles=30, kick=0.05, noise=0.002, inhand=True, settle_max=1.0, inhand_kw=None):
     rng = np.random.default_rng(seed)
     x, cp, off = stage1_juggle.load(catch)
     J = juggle.Juggler(1, human=True)
-    o = rng.uniform(-0.015, 0.015, 2)
-    r = stage1_juggle.juggle_run(J, x, cp, off, cycles=cycles, seed=seed, noise=noise, kick=kick,
-                                 ball_offset=(o[0], o[1], 0.06))
+    o = rng.uniform(-0.01, 0.01, 2)
+    r = stage1_juggle.juggle_run(J, x, cp, off, cycles=cycles, seed=seed, noise=noise, kick=kick, inhand=inhand,
+                                 ball_spot=(0.018 + o[0], -0.007, o[1]), settle_max=settle_max,
+                                 inhand_kw=inhand_kw)
     return dict(catches=r["catches"], all30=int(r["catches"] >= cycles), why=r["why"], qd_ratio=r["qd_ratio"],
                 within_limits=int(r["qd_ratio"] <= 1.0), tau_sat=r["tau_sat"])
 
@@ -36,9 +38,11 @@ if __name__ == "__main__":
     ap.add_argument("--catch", default="runs/catch3_v443.json")
     ap.add_argument("--kick", type=float, default=0.05)
     ap.add_argument("--out", default="logs/stage1_robust.jsonl")
+    ap.add_argument("--no-inhand", action="store_true", help="without the in-hand feedback (the earlier controller)")
+    ap.add_argument("--settle-max", type=float, default=1.0)
     a = ap.parse_args()
     R = evalpool.evaluate(episode, range(a.seed0, a.seed0 + a.n), procs=min(12, os.cpu_count()),
-                          kwargs=dict(catch=a.catch, kick=a.kick))
+                          kwargs=dict(catch=a.catch, kick=a.kick, inhand=not a.no_inhand, settle_max=a.settle_max))
     evalpool.save_jsonl(R, a.out)
     c = np.array([r["catches"] for r in R])
     print(evalpool.summarise(R, rates=["all30", "within_limits"], means=["catches", "qd_ratio", "tau_sat"]))

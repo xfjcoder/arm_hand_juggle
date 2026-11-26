@@ -20,16 +20,19 @@ import cem_throw
 import juggle
 from cem_catch import Catcher
 from juggle import G, Seg
+from inhand import InHand
 from planner import BallFit, Planner
 
 
 def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at=0.85, seed=None, noise=0.0,
                ball_offset=(0.0, 0.0, 0.06), settle_max=0.6, frames=None, every=16, log=None, trace=None, preposition=True,
-               vmax_ratio=1.0, kick=0.0):
+               vmax_ratio=0.97, kick=0.0, inhand=True, ball_spot=None, inhand_kw=None):
+    # vmax_ratio: planned motions above this fraction of the joint speed limits end the run (a drop); below 1.0
+    # because tracking adds a little: a plan at 0.995 of the limit measured 1.001
     rng = np.random.default_rng(seed)
     th, br, q_rel = cem_throw.segments(x, T, Tb)
     q_cock = th(0)[0]
-    J.reset(q=q_cock, grip=J.hold, ball_offset=ball_offset)
+    J.reset(q=q_cock, grip=J.hold, ball_offset=ball_offset, ball_spot=ball_spot)
     p_, R_, _, _ = J.palm()
     start_spot = (R_.T @ (J.ball()[0] - p_)).round(3).tolist()
     pl = Planner(J)
@@ -37,6 +40,9 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
     q_stop = br(T + Tb)[0]
     _, R_stop = pl.fk(q_stop)
     c = Catcher(J, pl, catch_params, q_rel, q_cock, R_rel, np.array(ball_off0))
+    # the target is the pocket the throw was tuned from (x 0.015-0.018), not wherever this start settled
+    ih = InHand(J, pl, 0.016, rng=np.random.default_rng(None if seed is None else seed + 7919),
+                **(inhand_kw or {})) if inhand else None
     m, d = J.m, J.d
     dt = m.opt.timestep
     t, step = 0.0, 0
@@ -70,7 +76,8 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
         elif phase == "flight":
             fit.add(t, b + (rng.normal(0, noise, 3) if noise else 0))      # what a ball tracker would measure
             b, bv = fit.state(t)
-            hold = pre(t) if pre is not None else br(t - t_throw)
+            tl = t - t_throw                                          # the ball can leave early (a bad throw):
+            hold = pre(t) if pre is not None else th(tl) if tl < T else br(tl)   # finish the throw, then brake
             q, qd, qdd = seg(t) if seg is not None else hold
             if preposition and pre is None and seg is None and t - t_throw >= T + Tb and fit.ready():
                 # the brake is done and the ball's flight is known: move (slowly) to under where it will land,
@@ -95,6 +102,8 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
                 q, qd, qdd = end
                 t_grip = t + c.grip_delay
                 t_dip_end = t + c.T_d
+                if ih:
+                    ih.reset()
             elif t >= next_plan and fit.ready() and (t_hit is None or t_hit - t > 0.03):
                 bm = b
                 disc = bv[2] ** 2 + 2 * G * (bm[2] - z_catch)
@@ -117,6 +126,9 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
                 next_plan = t + 0.02
         else:                                                         # dip, then settle
             q, qd, qdd = seg(t)
+            if ih:                                                    # in-hand feedback: stop the roll
+                ih.step(t, dt, q, qd)
+                q, qd, qdd = ih.apply(q, qd, qdd)
             if t >= t_grip:
                 J.hand_target = J.hold
             if t >= t_dip_end + 0.05:
@@ -126,7 +138,8 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
                     break
                 # wait (up to settle_max) for the ball to come to rest against the curled fingers, where
                 # it starts the first throw: the tuned throw's aim depends on where the ball sits
-                if np.linalg.norm(bv) > 0.03 and t < t_dip_end + settle_max:
+                still = ih.settled() if ih else np.linalg.norm(bv) <= 0.03
+                if not still and t < t_dip_end + settle_max:
                     pass
                 else:
                     catches += 1
@@ -170,6 +183,10 @@ def main():
     ap.add_argument("--catch", default="runs/catch_v443.json")
     ap.add_argument("--cycles", type=int, default=30)
     ap.add_argument("--gif")
+    ap.add_argument("--seed", type=int)
+    ap.add_argument("--kick", type=float, default=0.0, help="random ball velocity kick per release (m/s, per axis)")
+    ap.add_argument("--noise", type=float, default=0.0, help="ball tracker position noise (m)")
+    ap.add_argument("--no-inhand", action="store_true")
     a = ap.parse_args()
     x, cp, off = load(a.catch)
     J = juggle.Juggler(1, human=True)
@@ -177,7 +194,8 @@ def main():
     if a.gif:
         J.renderer = mj.Renderer(J.m, 480, 640)
         frames = []
-    out = juggle_run(J, x, cp, off, cycles=a.cycles, frames=frames, log=print)
+    out = juggle_run(J, x, cp, off, cycles=a.cycles, frames=frames, log=print, seed=a.seed, kick=a.kick, noise=a.noise,
+                     inhand=not a.no_inhand, settle_max=1.0)
     print(json.dumps({k: v for k, v in out.items() if k not in ("releases", "spots")}))
     if a.gif:
         J.renderer.close()
