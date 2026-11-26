@@ -35,8 +35,10 @@ from stage1_juggle import peak_ratio
 CATCH = "runs/catch5_v443.json"
 
 
-def load_cycle(J, pl, gate="logs/stage2_timing_cem_d[0.0,0.2].json", catch=CATCH, d_out=(0.0, 0.2)):
-    """The nominal cycle: the best gate solution, plus the Catcher (for catch states) it was built with."""
+def load_cycle(J, pl, gate="logs/stage2_timing_cem_d[0.0,0.2].json", catch=CATCH, d_out=(0.0, 0.2), x=None):
+    """The nominal cycle: the best gate solution (or x from stage2_cem.py: gate parameters + D_open,
+    grip_delay, tilt, cage), plus the Catcher (for catch states) it was built with."""
+    cx = x
     x, cp, off = stage1_juggle.load(catch)
     R = json.load(open(gate))
     b = min(R, key=lambda r: max(r["speed"], r["torque"]))
@@ -44,7 +46,11 @@ def load_cycle(J, pl, gate="logs/stage2_timing_cem_d[0.0,0.2].json", catch=CATCH
     _, R_rel = pl.fk(q_rel)
     c = Catcher(J, pl, cp, q_rel, th(0)[0], R_rel, np.array(off))
     J.ball_off = c.ball_off
-    cy = stage2_timing.cycle_states(J, pl, c, q_rel, np.array(b["z"]), b["vz_set"], b["V"], d_out)
+    z = np.array(b["z"]) if cx is None else np.asarray(cx[:12])
+    cy = stage2_timing.cycle_states(J, pl, c, q_rel, z, b["vz_set"], b["V"], d_out)
+    if cx is not None:
+        cy.update(D_open=float(np.clip(cx[12], 0.0, 0.15)), grip_delay=float(np.clip(cx[13], 0.0, 0.2)),
+                  cage=float(np.clip(cx[15], 0.0, 1.0)))
     c.k, c.qdd_c, c.R_rel = cy["k"], cy["qdd_c"], pl.fk(cy["catch"][0])[1]
     # start-up stroke: from rest at the Stage 1 cocking offset below the release pose (0.94 of the speed
     # limit, 0.78 of the torque limit over 0.4 s)
@@ -64,6 +70,8 @@ def juggle2(J, cy, cycles=10, seed=None, kick=0.0, preset="real", noise=0.002, T
     srng = np.random.default_rng(None if seed is None else seed + 104729)
     cams = [Camera(J, srng, noise=noise, ball=i, **cfg["camera"]) for i in (0, 1)]
     tacs = [Tactile(J, srng, ball=i, **cfg["tactile"]) for i in (0, 1)]
+    D_open, grip_delay = cy.get("D_open", D_open), cy.get("grip_delay", grip_delay)
+    grip = J.hold + cy.get("cage", 0.0) * (J.cage - J.hold)
     J.reset(q=cy["q_start"], grip=J.hold)
     m, d, ids = J.m, J.d, J.ids
     dt = m.opt.timestep
@@ -108,7 +116,7 @@ def juggle2(J, cy, cycles=10, seed=None, kick=0.0, preset="real", noise=0.002, T
         if phase == "dwell":
             q, qd, qdd = seg(t)
             if t_grip is not None and t >= t_grip:
-                J.hand_target = J.hold
+                J.hand_target = grip
             if t >= t_open:
                 J.hand_target = J.flat
                 if leaving is None and (not releases or t_grip is not None):
