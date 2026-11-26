@@ -25,7 +25,7 @@ BALL_MASS = 0.10
 TIMESTEP = 0.002
 
 
-def build_spec(n_balls=1):
+def build_spec(n_balls=1, human=False):
     arm = mj.MjSpec.from_file(str(MENAGERIE / "universal_robots_ur10e" / "ur10e.xml"))
     hand = mj.MjSpec.from_file(str(MENAGERIE / "shadow_hand" / "right_hand.xml"))
     taken = {mt.name for mt in arm.materials}         # both models define e.g. "black": rename the hand's
@@ -71,9 +71,18 @@ def build_spec(n_balls=1):
     tex = arm.add_texture(name="grid", type=mj.mjtTexture.mjTEXTURE_2D, builtin=mj.mjtBuiltin.mjBUILTIN_CHECKER,
                           rgb1=[.25, .3, .35], rgb2=[.2, .24, .28], width=512, height=512)
     arm.add_material(name="grid", textures=["", "grid"], texrepeat=[6, 6], reflectance=0.1)
-    wb.add_geom(name="floor", type=mj.mjtGeom.mjGEOM_PLANE, size=[3, 3, 0.05], material="grid", pos=[0, 0, -0.8])
-    wb.add_geom(name="pedestal", type=mj.mjtGeom.mjGEOM_CYLINDER, size=[0.1, 0.4, 0], pos=[0, 0, -0.4],
-                rgba=[.35, .35, .38, 1], contype=0, conaffinity=0)   # visual only
+    if human:
+        # shoulder height: base 1.45 m above the floor (shoulder joint ~1.6 m); a torso-like column BEHIND the
+        # base with a bracket, so the upper arm can hang down in front of it (visual only)
+        wb.add_geom(name="floor", type=mj.mjtGeom.mjGEOM_PLANE, size=[4, 4, 0.05], material="grid", pos=[0, 0, -1.45])
+        wb.add_geom(name="torso", type=mj.mjtGeom.mjGEOM_BOX, size=[0.12, 0.2, 0.75], pos=[-0.24, 0, -0.75],
+                    rgba=[.35, .35, .38, 1], contype=0, conaffinity=0)
+        wb.add_geom(name="bracket", type=mj.mjtGeom.mjGEOM_BOX, size=[0.16, 0.1, 0.02], pos=[-0.1, 0, -0.02],
+                    rgba=[.3, .3, .33, 1], contype=0, conaffinity=0)
+    else:
+        wb.add_geom(name="floor", type=mj.mjtGeom.mjGEOM_PLANE, size=[3, 3, 0.05], material="grid", pos=[0, 0, -0.8])
+        wb.add_geom(name="pedestal", type=mj.mjtGeom.mjGEOM_CYLINDER, size=[0.1, 0.4, 0], pos=[0, 0, -0.4],
+                    rgba=[.35, .35, .38, 1], contype=0, conaffinity=0)   # visual only
     wb.add_light(pos=[0.5, -1.0, 2.5], dir=[0, 0.3, -1], diffuse=[.8, .8, .8])
     wb.add_light(pos=[1.5, 1.0, 2.0], dir=[-0.5, -0.3, -1], diffuse=[.4, .4, .4])
     colours = ([.9, .2, .2, 1], [.2, .6, .95, 1], [.95, .8, .1, 1], [.3, .85, .3, 1])
@@ -86,8 +95,8 @@ def build_spec(n_balls=1):
     return arm
 
 
-def build(n_balls=1):
-    return build_spec(n_balls).compile()
+def build(n_balls=1, human=False):
+    return build_spec(n_balls, human).compile()
 
 
 class Ids:

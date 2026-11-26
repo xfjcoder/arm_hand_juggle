@@ -24,6 +24,9 @@ CUP = {"rh_A_WRJ2": 0.0, "rh_A_WRJ1": 0.0,
 FLAT = dict(CUP, **{"rh_A_THJ4": 0.2, "rh_A_THJ1": 0.0, "rh_A_THJ5": 0.0,
                     "rh_A_FFJ3": 0.0, "rh_A_FFJ0": 0.0, "rh_A_MFJ3": 0.0, "rh_A_MFJ0": 0.0,
                     "rh_A_RFJ3": 0.0, "rh_A_RFJ0": 0.0, "rh_A_LFJ5": 0.0, "rh_A_LFJ3": 0.0, "rh_A_LFJ0": 0.0})
+# deeper cup for holding the ball while the palm is tilted fingers-down (human-style cocked pose)
+HOLD = dict(CUP, **{"rh_A_FFJ3": 0.7, "rh_A_FFJ0": 0.9, "rh_A_MFJ3": 0.7, "rh_A_MFJ0": 0.9,
+                    "rh_A_RFJ3": 0.7, "rh_A_RFJ0": 0.9, "rh_A_LFJ3": 0.7, "rh_A_LFJ0": 0.9, "rh_A_LFJ5": 0.5})
 # Stage 0 throwing pose: palm at (1.0, 0, 0.3), palm up, fingers along +y (logs/stage0_speed.json)
 POSE_Q = np.array([-0.5721, -0.5549, 0.7827, -0.2278, -0.5721, 1.5708])
 POSE_R = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]], float)   # palm frame columns in world at POSE_Q
@@ -56,8 +59,8 @@ class Seg:
 
 
 class Juggler:
-    def __init__(self, n_balls=1, kp=600.0, kd=None, kr=600.0):
-        self.m = scene.build(n_balls)
+    def __init__(self, n_balls=1, kp=600.0, kd=None, kr=600.0, human=False):
+        self.m = scene.build(n_balls, human)
         self.d = mj.MjData(self.m)
         self.ids = scene.Ids(self.m)
         self.kp, self.kd = kp, (2 * np.sqrt(kp) if kd is None else kd)
@@ -75,6 +78,7 @@ class Juggler:
         self.hand_bodies = hand
         self.cup = self.posture(CUP)
         self.flat = self.posture(FLAT)
+        self.hold = self.posture(HOLD)
         self.hand_target = self.cup
         self.R_d = POSE_R
         self.stats = dict(qd_ratio=0.0, tau_sat=0, steps=0)
@@ -128,11 +132,26 @@ class Juggler:
         self.stats["tau_sat"] += int(sat.any())
         self.stats["steps"] += 1
 
-    def reset(self, q=POSE_Q, settle=0.8, ball_offset=(0.0, 0.0, 0.06)):
+    def control_joint(self, q_d, qd_d, qdd_d, kp=400.0, kd=40.0):
+        """Joint-space computed torque for the arm; hand held at self.hand_target."""
+        m, d, ids = self.m, self.d, self.ids
+        q, qd = d.qpos[ids.arm_q], d.qvel[ids.arm_v]
+        qdd = qdd_d + kp * (q_d - q) + kd * (qd_d - qd)
+        M = np.zeros((m.nv, m.nv))
+        mj.mj_fullM(m, d, M)
+        tau = M[np.ix_(ids.arm_v, ids.arm_v)] @ qdd + d.qfrc_bias[ids.arm_v] - d.qfrc_passive[ids.arm_v]
+        sat = np.abs(tau) > scene.TORQUE_MAX
+        d.ctrl[ids.arm_u] = np.clip(tau, -scene.TORQUE_MAX, scene.TORQUE_MAX)
+        d.ctrl[ids.hand_u] = self.hand_target[ids.hand_u]
+        self.stats["qd_ratio"] = max(self.stats["qd_ratio"], float(np.max(np.abs(qd) / scene.JOINT_VMAX)))
+        self.stats["tau_sat"] += int(sat.any())
+        self.stats["steps"] += 1
+
+    def reset(self, q=POSE_Q, settle=0.8, ball_offset=(0.0, 0.0, 0.06), grip=None, ball_spot=None):
         """Arm at q, hand cupped, ball dropped onto the palm and allowed to settle."""
         m, d, ids = self.m, self.d, self.ids
         mj.mj_resetData(m, d)
-        self.hand_target = self.cup
+        self.hand_target = self.cup if grip is None else grip
         d.qpos[ids.arm_q] = q
         d.ctrl[ids.hand_u] = self.cup[ids.hand_u]
         for u in ids.hand_u:                          # fingers start at their cup targets
@@ -145,7 +164,8 @@ class Juggler:
         self.R_d = R                                  # hold the pose's own palm orientation
         for i in range(len(ids.balls)):
             q0 = ids.ball_q[i]
-            d.qpos[q0:q0 + 3] = p0 + np.array(ball_offset) + [0, 0, 0.08 * i]
+            d.qpos[q0:q0 + 3] = (p0 + R @ np.array(ball_spot) if ball_spot is not None   # palm-frame spot
+                                 else p0 + np.array(ball_offset) + [0, 0, 0.08 * i])
             d.qpos[q0 + 3:q0 + 7] = [1, 0, 0, 0]
         mj.mj_forward(m, d)
         for _ in range(int(settle / m.opt.timestep)):
