@@ -182,11 +182,14 @@ def unit(J, pl, cy, inc, frames=None, every=16):
 
 
 def cost(r):
+    over = max(r["qd_ratio"], r["peak"]) - 0.97
+    if over > 0 or r["tau_sat"] > 0.01:                          # outside the limits: as bad as a drop, or worse
+        return 8.0 + 10 * max(over, 0.0) + 10 * r["tau_sat"]
     if not r["held"]:
         return 10.0 - 4.0 * r["held_frac"]                         # graded: how far through the dwell it stayed
     c = np.sum((np.array(r["land_err"]) / 0.03) ** 2) + (r["t_err"] / 0.03) ** 2
-    c += 20 * max(0.0, r["qd_ratio"] - 0.95) + 20 * r["tau_sat"] + 20 * max(0.0, r["peak"] - 0.95)
-    return float(c)
+    c += 20 * max(0.0, r["qd_ratio"] - 0.93) + 20 * max(0.0, r["peak"] - 0.93)
+    return float(6 * c / (c + 50))                                 # 0-6: below every dropped ball (6-10)
 
 
 _BASE = {}
