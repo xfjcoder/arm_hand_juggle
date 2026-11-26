@@ -22,14 +22,23 @@ from cem_catch import Catcher
 from juggle import G, Seg
 from inhand import InHand
 from planner import BallFit, Planner
+from sensing import Sensors
 
 
 def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at=0.85, seed=None, noise=0.0,
                ball_offset=(0.0, 0.0, 0.06), settle_max=0.6, frames=None, every=16, log=None, trace=None, preposition=True,
-               vmax_ratio=0.97, kick=0.0, inhand=True, ball_spot=None, inhand_kw=None):
+               vmax_ratio=0.97, kick=0.0, inhand=True, ball_spot=None, inhand_kw=None, sensors=None, z_release=None):
     # vmax_ratio: planned motions above this fraction of the joint speed limits end the run (a drop); below 1.0
     # because tracking adds a little: a plan at 0.995 of the limit measured 1.001
+    # sensors: None reads the ball as Stage 1 was tuned (tracker every step with `noise`, ideal in-hand
+    # sensor); "ideal"/"real" or a sensing.Sensors: a camera in flight and a tactile skin in the hand.
+    # With sensors the catch aims for the release spot and height the catch was tuned with (ball_off0,
+    # z_release): measured ones would come from a ball rolling fast across the palm, seen by a 100 Hz skin
     rng = np.random.default_rng(seed)
+    if isinstance(sensors, str):
+        sensors = Sensors(J, sensors, seed=seed, noise=noise)
+    cam = sensors.camera if sensors else None
+    tac = sensors.tactile if sensors else None
     th, br, q_rel = cem_throw.segments(x, T, Tb)
     q_cock = th(0)[0]
     J.reset(q=q_cock, grip=J.hold, ball_offset=ball_offset, ball_spot=ball_spot)
@@ -46,23 +55,31 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
     m, d = J.m, J.d
     dt = m.opt.timestep
     t, step = 0.0, 0
-    phase, t_throw = "throw", 0.0
+    phase, t_throw, t_rel = "throw", 0.0, 0.0
+    for sn in (cam, tac):
+        if sn:
+            sn.reset()
     seg, t_hit, next_plan, gap, z_catch, t_dip_end = None, None, 0.0, 0, None, None
     off_now = np.array(ball_off0)
     catches, releases, spots = 0, [], []
     pre, why = None, None
     while True:
         b, bv = J.ball()
+        reading = tac.step(t) if tac else None                       # newest tactile reading
+        frames_in = cam.step(t) if cam else None                     # camera frames delivered now
         if phase == "throw":
             tl = t - t_throw
             q, qd, qdd = th(tl) if tl < T else br(tl)
             if tl >= open_at * T:
                 J.hand_target = J.flat
-            touching = J.ball_touching_hand()
+            if tac:                                                   # release seen by the skin
+                touching = reading is not None and reading[1]
+            else:
+                touching = J.ball_touching_hand()
+                if touching:                                          # where the ball sits in the palm
+                    p_, R_, _, _ = J.palm()
+                    off_now = R_.T @ (b - p_)
             gap = 0 if touching else gap + 1
-            if touching:                                              # where the ball sits in the palm
-                p_, R_, _, _ = J.palm()
-                off_now = R_.T @ (b - p_)
             if gap >= 3 and tl > 0.5 * T:
                 if kick:                                              # throw-to-throw variation (robustness test)
                     J.d.qvel[J.ids.ball_v[0]:J.ids.ball_v[0] + 3] += rng.normal(0, kick, 3)
@@ -70,12 +87,21 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
                     b, bv = J.ball()
                 releases.append(bv.round(3).tolist())
                 c.ball_off = off_now                                  # catch it back onto that spot
-                z_catch = b[2]
-                phase, seg, t_hit, next_plan, pre = "flight", None, None, t, None
+                if tac:
+                    z_catch = z_release
+                else:
+                    z_catch = b[2]
+                phase, seg, t_hit, next_plan, pre, t_rel = "flight", None, None, t, None, t
                 fit = BallFit()
         elif phase == "flight":
-            fit.add(t, b + (rng.normal(0, noise, 3) if noise else 0))      # what a ball tracker would measure
-            b, bv = fit.state(t)
+            if cam:
+                for tc, pc in frames_in:
+                    if tc >= t_rel:                                # in free flight only
+                        fit.add(tc, pc)
+            else:
+                fit.add(t, b + (rng.normal(0, noise, 3) if noise else 0))  # what a ball tracker would measure
+            if fit.t:
+                b, bv = fit.state(t)
             tl = t - t_throw                                          # the ball can leave early (a bad throw):
             hold = pre(t) if pre is not None else th(tl) if tl < T else br(tl)   # finish the throw, then brake
             q, qd, qdd = seg(t) if seg is not None else hold
@@ -127,7 +153,7 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
         else:                                                         # dip, then settle
             q, qd, qdd = seg(t)
             if ih:                                                    # in-hand feedback: stop the roll
-                ih.step(t, dt, q, qd)
+                ih.step(t, dt, q, qd, reading=reading)
                 q, qd, qdd = ih.apply(q, qd, qdd)
             if t >= t_grip:
                 J.hand_target = J.hold
@@ -160,11 +186,13 @@ def juggle_run(J, x, catch_params, ball_off0, cycles=30, T=0.35, Tb=0.2, open_at
             frames.append(J.render())
         t += dt
         step += 1
-        if b[2] < -1.4 or t > 120:
-            why = why or ("ball dropped" if b[2] < -1.4 else "time")
+        z_true = J.ball()[0][2]
+        if z_true < -1.4 or t > 120:
+            why = why or ("ball dropped" if z_true < -1.4 else "time")
             break
     return dict(catches=catches, why=why if catches < cycles else None, releases=releases, spots=spots, start_spot=start_spot, qd_ratio=round(J.stats["qd_ratio"], 3),
-                tau_sat=round(J.stats["tau_sat"] / max(1, J.stats["steps"]), 4), t=round(t, 2))
+                tau_sat=round(J.stats["tau_sat"] / max(1, J.stats["steps"]), 4), t=round(t, 2),
+                cam_lost=round((cam.hidden + cam.dropped) / max(1, cam.frames), 3) if cam else None)
 
 
 def peak_ratio(seg, n=40):
@@ -178,6 +206,11 @@ def load(catch_path):
     return np.array(spec["x"]), np.array(cs["params"]), np.array(cs["rel"]["off"])
 
 
+def release_height(catch_path):
+    """The release height the catch was tuned with (cem_catch.py)."""
+    return json.load(open(catch_path))["rel"]["p"][2]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--catch", default="runs/catch_v443.json")
@@ -187,6 +220,7 @@ def main():
     ap.add_argument("--kick", type=float, default=0.0, help="random ball velocity kick per release (m/s, per axis)")
     ap.add_argument("--noise", type=float, default=0.0, help="ball tracker position noise (m)")
     ap.add_argument("--no-inhand", action="store_true")
+    ap.add_argument("--sensors", choices=["ideal", "real"], help="sensor model (default: as Stage 1 was tuned)")
     a = ap.parse_args()
     x, cp, off = load(a.catch)
     J = juggle.Juggler(1, human=True)
@@ -197,7 +231,8 @@ def main():
         J.render = lambda: render(distance=2.3, azimuth=160, elevation=-6, lookat=[1.0, 0.2, 0.55])
         frames = []
     out = juggle_run(J, x, cp, off, cycles=a.cycles, frames=frames, log=print, seed=a.seed, kick=a.kick, noise=a.noise,
-                     inhand=not a.no_inhand, settle_max=1.0)
+                     inhand=not a.no_inhand, settle_max=1.0, sensors=a.sensors,
+                     z_release=release_height(a.catch))
     print(json.dumps({k: v for k, v in out.items() if k not in ("releases", "spots")}))
     if a.gif:
         J.renderer.close()

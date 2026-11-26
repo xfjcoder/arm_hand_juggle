@@ -19,16 +19,19 @@ import stage1_juggle
 from robolab import evalpool
 
 
-def episode(seed, catch="runs/catch3_v443.json", cycles=30, kick=0.05, noise=0.002, inhand=True, settle_max=1.0, inhand_kw=None):
+def episode(seed, catch="runs/catch3_v443.json", cycles=30, kick=0.05, noise=0.002, inhand=True, settle_max=1.0, inhand_kw=None,
+            sensors=None):
     rng = np.random.default_rng(seed)
     x, cp, off = stage1_juggle.load(catch)
     J = juggle.Juggler(1, human=True)
     o = rng.uniform(-0.01, 0.01, 2)
     r = stage1_juggle.juggle_run(J, x, cp, off, cycles=cycles, seed=seed, noise=noise, kick=kick, inhand=inhand,
                                  ball_spot=(0.018 + o[0], -0.007, o[1]), settle_max=settle_max,
-                                 inhand_kw=inhand_kw)
+                                 inhand_kw=inhand_kw, sensors=sensors,
+                                 z_release=stage1_juggle.release_height(catch))
     return dict(catches=r["catches"], all30=int(r["catches"] >= cycles), why=r["why"], qd_ratio=r["qd_ratio"],
-                within_limits=int(r["qd_ratio"] <= 1.0), tau_sat=r["tau_sat"])
+                within_limits=int(r["qd_ratio"] <= 1.0), tau_sat=r["tau_sat"],
+                cam_lost=r["cam_lost"] or 0.0)
 
 
 if __name__ == "__main__":
@@ -40,12 +43,14 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="logs/stage1_robust.jsonl")
     ap.add_argument("--no-inhand", action="store_true", help="without the in-hand feedback (the earlier controller)")
     ap.add_argument("--settle-max", type=float, default=1.0)
+    ap.add_argument("--sensors", choices=["ideal", "real"], help="sensor model (sensing.py); default: as tuned")
     a = ap.parse_args()
     R = evalpool.evaluate(episode, range(a.seed0, a.seed0 + a.n), procs=min(12, os.cpu_count()),
-                          kwargs=dict(catch=a.catch, kick=a.kick, inhand=not a.no_inhand, settle_max=a.settle_max))
+                          kwargs=dict(catch=a.catch, kick=a.kick, inhand=not a.no_inhand, settle_max=a.settle_max,
+                                      sensors=a.sensors))
     evalpool.save_jsonl(R, a.out)
     c = np.array([r["catches"] for r in R])
-    print(evalpool.summarise(R, rates=["all30", "within_limits"], means=["catches", "qd_ratio", "tau_sat"]))
+    print(evalpool.summarise(R, rates=["all30", "within_limits"], means=["catches", "qd_ratio", "tau_sat", "cam_lost"]))
     print(f"catches in a row: median {np.median(c):.0f}, min {c.min()}, quartiles {np.percentile(c, [25, 75]).tolist()}")
     whys = [r["why"] for r in R if r["why"]]
     print("why runs ended early:", {w: whys.count(w) for w in set(whys)})

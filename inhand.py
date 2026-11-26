@@ -43,18 +43,29 @@ class InHand:
         self.th, self.th_rate, self.ts, self.xs, self.zs, self.next_t = 0.0, 0.0, [], [], [], -1.0
         self.e, self.v, self.speed = None, None, None
 
-    def sense(self, t):
-        """Sample the in-hand sensor (if due); returns True when a new estimate is available."""
-        if t < self.next_t:
-            return False
-        self.next_t = t + self.period
-        if not self.J.ball_touching_hand():                # no contact, no in-hand reading
+    def sense(self, t, reading=None):
+        """Sample the in-hand sensor (if due); returns True when a new estimate is available.
+
+        reading: (capture time, touching, ball offset in the palm frame) from a sensing.Tactile skin; without
+        it, the built-in ideal sensor (true position, 1 mm noise, no delay)."""
+        if reading is not None:
+            tc, touching, off = reading
+            if tc <= self.next_t:                           # nothing new delivered
+                return False
+            self.next_t = tc
+        else:
+            if t < self.next_t:
+                return False
+            self.next_t, tc = t + self.period, t
+            touching, off = self.J.ball_touching_hand(), None
+        if not touching or (reading is not None and off is None):   # no contact, no in-hand reading
             self.ts, self.xs, self.zs = [], [], []
             self.e = self.v = self.speed = None
             return False
-        p, R, _, _ = self.J.palm()
-        off = R.T @ (self.J.ball()[0] - p) + self.rng.normal(0, self.noise, 3)
-        self.ts.append(t); self.xs.append(off[0]); self.zs.append(off[2])
+        if off is None:
+            p, R, _, _ = self.J.palm()
+            off = R.T @ (self.J.ball()[0] - p) + self.rng.normal(0, self.noise, 3)
+        self.ts.append(tc); self.xs.append(off[0]); self.zs.append(off[2])
         n = self.nfit
         self.ts, self.xs, self.zs = self.ts[-n:], self.xs[-n:], self.zs[-n:]
         self.e = self.xs[-1] - self.x_spot
@@ -63,11 +74,12 @@ class InHand:
             self.v = float(np.linalg.lstsq(A, np.array(self.xs), rcond=None)[0][1])
             vz = float(np.linalg.lstsq(A, np.array(self.zs), rcond=None)[0][1])
             self.speed = float(np.hypot(self.v, vz))
+            self.e += self.v * (t - tc)                     # carry the reading over the sensor's delay
         return True
 
-    def step(self, t, dt, q=None, qd=None):
+    def step(self, t, dt, q=None, qd=None, reading=None):
         """Update the tilt; with the planned (q, qd), the tilt rate is limited to keep joint speeds legal."""
-        self.sense(t)
+        self.sense(t, reading)
         want = 0.0
         if self.e is not None and self.v is not None:
             R = self.J.palm()[1]
