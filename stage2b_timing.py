@@ -24,6 +24,7 @@ speed and torque ratio <= 1, the held ball never left behind (ball-point vertica
 dwell), the palm pulling away at release (< -1.2 g). Also the closest approach between balls in flight.
 
     PYTHONPATH=.:../robolab python3 stage2b_timing.py      # ~15 min on 12 processes
+    PYTHONPATH=.:../robolab python3 stage2b_timing.py --wide 0.15 0.20    # add wider cascade spacings
 """
 import json
 
@@ -193,9 +194,60 @@ def jobs():
     return out
 
 
+def wide_jobs(d_ys, vz=4.43):
+    """Cascade candidates with the catch spot further out (wider throw-catch spacing, more room between the
+    rising and the falling ball where their paths cross)."""
+    F = 2 * vz / G
+    out = []
+    for d_y in d_ys:
+        for i in range(5):
+            V = round(F * (0.35 + 0.04 * i), 3)
+            out.append(dict(pattern="cascade", vz=vz, V=V, D=round(2 * F - 3 * V, 3), d_y=d_y, c_off=[0, -d_y, 0],
+                            seed=1000 + int(round(100 * d_y)) * 10 + i))
+    return out
+
+
+def four_jobs():
+    """Four balls on two hands: Shannon gives F = 2 V + D (any two-hand pattern, crossing or not). The arm limit
+    check of one hand's cycle at the higher throw speeds; geometry as the 10 cm cascade (only the limits are
+    looked at here, the pattern itself is a later choice)."""
+    out = []
+    for vz in (5.0, 5.5, 6.0, 6.5):
+        F = 2 * vz / G
+        for V in (0.30, 0.35, 0.40, 0.45):
+            D = round(F - 2 * V, 3)
+            if D >= 0.30:
+                out.append(dict(pattern="four", vz=vz, V=V, D=D, d_y=0.10, c_off=[0, -0.10, 0],
+                                seed=2000 + len(out)))
+    return out
+
+
 def main():
+    import argparse
     from robolab import evalpool
-    R = evalpool.evaluate(search, jobs(), procs=12)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--wide", type=float, nargs="*", help="only these extra cascade spacings d_y (m), added to the log")
+    ap.add_argument("--four", action="store_true", help="four-ball cycles (F = 2 V + D), added to the log")
+    a = ap.parse_args()
+    if a.four:
+        R = [r for r in json.load(open("logs/stage2b_timing.json")) if r["pattern"] != "four"]
+        R += evalpool.evaluate(search, four_jobs(), procs=12)
+        json.dump(R, open("logs/stage2b_timing.json", "w"))
+        lines = ["four balls, two hands: F = 2 V + D",
+                 "  vz    F    apex |  V     D    Tc  | speed      torque     held  rel  | ok"]
+        for r in [r for r in R if r["pattern"] == "four"]:
+            lines.append(f"  {r['vz']:.2f} {r['F']:.2f} {r['vz'] ** 2 / (2 * G):.2f} | {r['V']:.2f} {r['D']:.2f} "
+                         f"{r['V'] + r['D']:.2f} | {r['speed']:.2f} {NAMES[r['js']][:8]:8s} {r['torque']:.2f} "
+                         f"{NAMES[r['jt']][:8]:8s} {r['acc_min']:5.1f} {r['acc_rel']:5.1f} | {'yes' if r['ok'] else ''}")
+        print("\n".join(lines))
+        open("logs/stage4_timing.txt", "w").write("\n".join(lines) + "\n")
+        return
+    if a.wide:
+        R = json.load(open("logs/stage2b_timing.json"))
+        R = [r for r in R if not (r["pattern"] == "cascade" and any(abs(r["d_y"] - d) < 1e-6 for d in a.wide))]
+        R += evalpool.evaluate(search, wide_jobs(a.wide), procs=12)
+    else:
+        R = evalpool.evaluate(search, jobs(), procs=12)
     json.dump(R, open("logs/stage2b_timing.json", "w"))
     report(R)
 

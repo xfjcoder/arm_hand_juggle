@@ -174,16 +174,18 @@ def unit(J, pl, cy, inc, frames=None, render=None, every=16):
     return out
 
 
-def reach_x(cy, vmax_ratio=0.97, iters=8):
-    """Smallest front-back catch reach (m) of the nominal vacant segment: how far the catch point can move
-    toward or away from the body, arriving at the same time, within vmax_ratio of the speed limits."""
+def reach_x(cy, vmax_ratio=0.97, iters=8, sideways=False):
+    """Smallest catch reach (m) of the nominal vacant segment: how far the catch point can move toward or away
+    from the body (and, with sideways, inward or outward), arriving at the same time, within vmax_ratio of
+    the speed limits."""
     c = cy["c"]
     out = []
-    for sign in (1, -1):
+    dirs = [np.r_[1.0, 0, 0], np.r_[-1.0, 0, 0]] + ([np.r_[0, 1.0, 0], np.r_[0, -1.0, 0]] if sideways else [])
+    for u in dirs:
         lo, hi = 0.0, 0.3
         for _ in range(iters):
             mid = (lo + hi) / 2
-            hit = cy["hit"] + np.r_[sign * mid, 0.0, 0.0]
+            hit = cy["hit"] + mid * u
             ok = peak_ratio(Seg(0.0, cy["V"], cy["rel"], c.catch_state(hit, cy["v_hit"]))) <= vmax_ratio
             lo, hi = (mid, hi) if ok else (lo, mid)
         out.append(lo)
@@ -216,7 +218,7 @@ def _base(pick=None):
     return _BASE
 
 
-def evaluate_one(i, pop, incs, pick=None, reach_min=None):
+def evaluate_one(i, pop, incs, pick=None, reach_min=None, reach_y=False):
     global REACH_MIN
     REACH_MIN = reach_min
     B = _base(pick)
@@ -224,7 +226,7 @@ def evaluate_one(i, pop, incs, pick=None, reach_min=None):
     cy = build(B["J"], B["pl"], B["c"], B["q_rel"], B["b"], pop[k])
     r = unit(B["J"], B["pl"], cy, incs[j])
     if reach_min is not None:
-        r["reach"] = reach_x(build(B["J"], B["pl"], B["c"], B["q_rel"], B["b"], pop[k]))
+        r["reach"] = reach_x(build(B["J"], B["pl"], B["c"], B["q_rel"], B["b"], pop[k]), sideways=reach_y)
     return dict(k=k, cost=cost(r), held=int(r["held"]), qd=r["qd_ratio"], peak=r["peak"],
                 land=r.get("land_err"), t_err=r.get("t_err"), reach=r.get("reach"))
 
@@ -239,14 +241,20 @@ def main():
     ap.add_argument("--start", help="tune the start-up throw for this cycle run instead (writes --out)")
     ap.add_argument("--vz", type=float, default=PICK["vz"], help="gate cycle: toss speed")
     ap.add_argument("--V", type=float, default=PICK["V"], help="gate cycle: empty time")
+    ap.add_argument("--d-y", type=float, default=PICK["d_y"], help="gate cycle: catch spot this far outside the throw spot")
     ap.add_argument("--reach-min", type=float, help="penalise front-back catch reach below this (m)")
+    ap.add_argument("--reach-y", action="store_true", help="--reach-min also applies inward and outward")
     ap.add_argument("--inc-scale", type=float, default=1.0, help="incoming-ball disturbance scale")
     a = ap.parse_args()
     if a.start:
         return tune_start(a.start, a.out)
-    pick = dict(PICK, vz=a.vz, V=a.V)
+    pick = dict(PICK, vz=a.vz, V=a.V, d_y=a.d_y)
     B = _base(pick)
-    x0 = np.r_[B["b"]["z"], 0.0, 0.0, 0.0, 0.07, 0.0, 0.86] if not a.init else np.array(json.load(open(a.init))["x"])
+    x0 = np.r_[B["b"]["z"], 0.0, 0.0, 0.0, 0.07, 0.0, 0.86]
+    if a.init:
+        I = json.load(open(a.init))
+        # same gate cycle: start from its x; another cycle: its gate solution with the init run's extras
+        x0 = np.array(I["x"]) if I.get("pick", PICK) == pick else np.r_[B["b"]["z"], I["x"][NZ:]]
     sig = np.r_[np.full(6, 0.5), 0.05, 0.05, 0.05, 0.05, 0.4, 0.3, 0.3, 0.3, 0.02, 0.02, 0.2]
     rng = np.random.default_rng(0)
     mu, best = x0.copy(), (np.inf, x0.copy())
@@ -254,7 +262,8 @@ def main():
         incs = incoming(a.incs, seed=1000 + g, scale=a.inc_scale)
         pop = np.vstack([mu, mu + sig * rng.standard_normal((a.pop - 1, len(mu)))])
         R = evalpool.evaluate(evaluate_one, range(len(pop) * len(incs)), procs=min(12, os.cpu_count()),
-                              kwargs=dict(pop=pop, incs=incs, pick=pick, reach_min=a.reach_min))
+                              kwargs=dict(pop=pop, incs=incs, pick=pick, reach_min=a.reach_min,
+                                          reach_y=a.reach_y))
         C, H = np.zeros(len(pop)), np.zeros(len(pop))
         for r in R:
             C[r["k"]] += r["cost"] / len(incs)
@@ -268,7 +277,8 @@ def main():
         print(f"gen {g:2d}  best {C[idx[0]]:.2f}  held {H[idx[0]]:.2f}  mean(elite) {C[idx].mean():.2f}  "
               f"mu-cost {C[0]:.2f} held {H[0]:.2f}  land {np.round(np.mean(lands, 0), 3).tolist() if lands else None}  "
               f"reach {reach[0] if reach else None}  extras {np.round(pop[idx[0]][NZ:], 3).tolist()}", flush=True)
-        json.dump(dict(x=best[1].tolist(), cost=best[0], gen=g, pick=pick, reach_min=a.reach_min), open(a.out, "w"))
+        json.dump(dict(x=best[1].tolist(), cost=best[0], gen=g, pick=pick, reach_min=a.reach_min,
+                       reach_y=a.reach_y), open(a.out, "w"))
 
 
 def start_unit(J, pl, cy, xs, q_start, frames=None, render=None, every=16):

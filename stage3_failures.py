@@ -52,11 +52,11 @@ def collision_watch(JR, n_balls, events):
     return on_step
 
 
-def run(seed, balls, kick, sensors, throws=30):
+def run(seed, balls, kick, sensors, throws=30, aim=False):
     JR, JL, cy = world(balls)
     events = []
     r = S.juggle2b(JR, JL, cy, n_balls=balls, throws=throws, seed=seed, kick=kick, preset=sensors,
-                   on_step=collision_watch(JR, balls, events))
+                   on_step=collision_watch(JR, balls, events), aim=S.AIM if aim else None)
     rel = r.pop("releases")
     near = [e for e in events if r["why"] and r["t"] - 1.0 <= e["t"] <= r["t"]]
     if not r["why"]:
@@ -79,12 +79,12 @@ def run(seed, balls, kick, sensors, throws=30):
 def classify(a):
     from robolab import evalpool
     R = evalpool.evaluate(run, range(a.seed0, a.seed0 + a.n), procs=min(12, os.cpu_count()),
-                          kwargs=dict(balls=a.balls, kick=a.kick, sensors=a.sensors))
+                          kwargs=dict(balls=a.balls, kick=a.kick, sensors=a.sensors, aim=a.aim))
     cats = {}
     for r in R:
         cats[r["category"]] = cats.get(r["category"], 0) + 1
     C = [r["collision"] for r in R if r["collision"]]
-    summary = dict(balls=a.balls, kick=a.kick, sensors=a.sensors, n=a.n, seed0=a.seed0, categories=cats,
+    summary = dict(balls=a.balls, kick=a.kick, sensors=a.sensors, aim=a.aim, n=a.n, seed0=a.seed0, categories=cats,
                    collision_z=np.percentile([c["z"] for c in C], [10, 50, 90]).round(3).tolist() if C else None,
                    collision_v_rel=np.percentile([c["v_rel"] for c in C], [10, 50, 90]).round(2).tolist() if C else None,
                    one_rising_one_falling=sum((c["vz"][0] > 0) != (c["vz"][1] > 0) for c in C), n_linked=len(C))
@@ -183,6 +183,7 @@ def main():
     ap.add_argument("--out", default="logs/stage3_failures.json")
     ap.add_argument("--seed", type=int, default=50000)
     ap.add_argument("--gif")
+    ap.add_argument("--aim", action="store_true", help="with the release-point offset (stage2b_juggle.AIM)")
     ap.add_argument("--title", default="")
     ap.add_argument("--before", type=float, default=1.6, help="seconds shown before the collision / failure")
     ap.add_argument("--tail", type=float, default=0.8, help="seconds shown after the failure")

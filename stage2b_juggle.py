@@ -37,6 +37,7 @@ CATCH = "runs/catch5_v443.json"
 CAMERA = camera_pos(lookat=(1.0, 0.0, 0.4))           # the tracking camera, in front of the two-arm robot
 MIR = np.array([1.0, -1.0, 1.0])
 MIRX = np.array([-1.0, 1.0, 1.0])              # palm frame: the left hand's x axis is flipped
+AIM = dict(margin=0.10, dmax=0.04, lead=0.2, start=False)   # release-point offset (aim_offset), as tested
 BALL_RGBA = ([1.0, 0.25, 0.2, 1], [0.35, 0.85, 1.0, 1], [1.0, 0.85, 0.2, 1])   # GIF colours: red, cyan, yellow
 
 
@@ -77,6 +78,7 @@ class Hand:
         self.gap_h, self.leaving, self.gap, self.last_reading = 0, None, 0, None
         self.fb = self.fb_thrown = self.last_off_t = None
         self.offs, self.catch_dev = [], np.zeros(3)
+        self.aimed = False                                     # this throw's release offset (aim) decided
 
     def throw_time(self, k):
         return self.T_start + k * self.Tc / 2
@@ -87,6 +89,40 @@ class Hand:
 
     def ball_in(self, b, bv):
         return (b * MIR, bv * MIR) if self.mir else (b, bv)
+
+
+def aim_offset(cy, b, bv, t, T0, aim):
+    """Release-point offset dp (horizontal, right-arm frame) with a throw-velocity change -dp / F, so the ball
+    still lands where and when it would, that keeps the nominal throw at least `margin` from the incoming ball
+    (b, bv at time t, ballistic) until this hand's catch. Returns (dp, dv, gap without, gap with).
+    Gravity cancels between two balls, so relative to each other they move on a straight line, ~5 m/s and
+    mostly vertical where the paths cross: a release-time shift only slides along it (no wider gap) and a
+    sideways velocity change alone costs ~5 cm of landing error per cm gained; this offset moves the throw
+    sideways by ~0.8 dp at the crossing for no landing error."""
+    p0, v0, F = cy["p_rel"], np.r_[cy["v_out"], G * cy["F"] / 2], cy["F"]
+    s = np.arange(0.05, cy["V"] - 0.03, 0.005)[:, None]
+    tau = T0 + s - t
+    pi = b + bv * tau + np.c_[0 * s, 0 * s, -0.5 * G * tau ** 2]
+
+    def miss(dp):
+        pt = p0 + dp + (v0 - dp / F) * s + np.c_[0 * s, 0 * s, -0.5 * G * s ** 2]
+        d = pt - pi
+        i = int(np.argmin(np.linalg.norm(d, axis=1)))
+        return d[i], float(np.linalg.norm(d[i]))
+    d0, g0 = miss(np.zeros(3))
+    if g0 >= aim["margin"]:
+        return np.zeros(3), np.zeros(3), g0, g0
+    u = np.r_[d0[:2], 0.0]
+    u = u / max(np.linalg.norm(u), 1e-6)               # push the throw away from the incoming ball
+    best = (g0, 0.0)
+    for r in np.linspace(0.005, aim["dmax"], 12):
+        g = miss(r * u)[1]
+        if g > best[0]:
+            best = (g, r)
+        if g >= aim["margin"]:
+            break
+    dp = best[1] * u
+    return dp, -dp / F, g0, best[0]
 
 
 def reset2(m, d, hands, balls, settle=0.8):
@@ -124,8 +160,11 @@ def reset2(m, d, hands, balls, settle=0.8):
 
 def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="ideal", noise=0.002, vmax_ratio=0.97,
              frames=None, render=None, every=16, log=None, correct=None, lead=0.25, data=None,
-             strict=False, on_step=None, tail=0.0):
-    """on_step(t): called after every physics step. tail: seconds to keep running after a failure (for GIFs)."""
+             strict=False, on_step=None, tail=0.0, aim=None):
+    """on_step(t): called after every physics step. tail: seconds to keep running after a failure (for GIFs).
+    aim: dict(lead, dmax, margin[, start, start_dmax]) -- `lead` before each release (start False: not the
+    start-up throws; start_dmax: a smaller offset limit for them), predict the closest approach between the throw
+    and the ball this hand catches next; if under `margin`, offset the release point up to `dmax` m (aim_offset)."""
     m, d = JR.m, JR.d
     dt = m.opt.timestep
     rng = np.random.default_rng(seed)
@@ -157,7 +196,7 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
     z_catch = cy["hit"][2]
     t, step, why, catches, thrown = 0.0, 0, None, 0, 0
     t_fail = None
-    releases = []
+    releases, aims = [], []
     while True:
         frames_in = [cam.step(t) for cam in cams]
         for i in range(n_balls):
@@ -173,8 +212,8 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                 if r is not None and r[0] != h.last_reading:
                     h.last_reading = r[0]
                     h.gap = 0 if r[1] else h.gap + 1
-                if h.gap >= 2:
-                    b = h.leaving
+                if h.gap >= 2 and h.phase == "vacant":            # only once the stroke has reached the release:
+                    b = h.leaving                                 # the ball can lift off the opening hand earlier
                     if kick:
                         d.qvel[J.ids.ball_v[b]:J.ids.ball_v[b] + 3] += rng.normal(0, kick, 3)
                         mj.mj_forward(m, d)
@@ -227,6 +266,29 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                             q_r, qd_r, qdd_r = cy["rel"]
                             qd_r = qd_r + np.linalg.solve(h.pl.jac6(q_r), np.r_[dv, 0, 0, 0])
                             h.seg = Seg(t, T_rel - t, (q, qd, qdd), (q_r, qd_r, qdd_r))
+                if (aim and not h.aimed and h.held is not None and t >= h.throw_time(h.k) - aim["lead"]
+                        and (h.phase == "dwell" or aim.get("start", True))):
+                    h.aimed = True
+                    inc = slot(h.k - 1)                           # the ball this hand catches after the throw
+                    f = fits[inc] if inc is not None else None
+                    if f is not None and f.ready():
+                        b, bv = h.ball_in(*f.state(t))
+                        a_ = aim if h.phase == "dwell" else dict(aim, dmax=aim.get("start_dmax", aim["dmax"]))
+                        dp, dv, g0, g1 = aim_offset(cy, b, bv, t, h.throw_time(h.k), a_)
+                        done = 0.0
+                        if g1 > g0:
+                            q_e, qd_e, qdd_e = h.seg(h.seg.t0 + h.seg.T - 1e-9)
+                            for frac in (1.0, 0.5):                       # within the speed limit, or half
+                                q2 = h.pl.ik_ball(h.pl.ball_point(q_e) + frac * dp, h.pl.fk(q_e)[1], q_e)
+                                w = h.pl.jac6(q_e) @ qd_e + np.r_[frac * dv, 0, 0, 0]
+                                new = Seg(t, h.throw_time(h.k) - t, (q, qd, qdd),
+                                          (q2, np.linalg.solve(h.pl.jac6(q2), w), qdd_e))
+                                if peak_ratio(new) <= vmax_ratio:
+                                    h.seg, done = new, frac
+                                    q, qd, qdd = h.seg(t)
+                                    break
+                        aims.append(dict(t=round(t, 3), hand="LR"[not h.mir], gap0=round(g0, 3),
+                                         dp=round(float(np.linalg.norm(dp)) * done, 3), gap=round(g1 if done else g0, 3)))
                 if t >= h.throw_time(h.k):                        # the release state: start the vacant
                     if h.held is not None:
                         thrown += 1
@@ -238,6 +300,7 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                     h.vac = Seg(t, h.V, h.seg(h.seg.t0 + h.seg.T - 1e-9), cy["catch"])   # on from where the stroke ends
                     h.phase, h.t_hit, h.next_plan = "vacant", t + h.V, t
                     h.hit_plan = None                             # set by the first feasible plan
+                    h.aimed = False
                     h.k += 2
                     q, qd, qdd = h.vac(t)
             else:
@@ -308,7 +371,7 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
     why = why0 if t_fail is not None else why
     return dict(catches=catches, why=why if catches < throws else None, t=round(t if t_fail is None else t_fail, 3),
                 qd_ratio=round(max(s["qd_ratio"] for s in st), 3),
-                tau_sat=round(max(s["tau_sat"] / max(1, s["steps"]) for s in st), 4), releases=releases)
+                tau_sat=round(max(s["tau_sat"] / max(1, s["steps"]) for s in st), 4), releases=releases, aims=aims)
 
 
 def make(n_balls=2):
@@ -357,6 +420,7 @@ def main():
     ap.add_argument("--run", default="runs/cycle2b_v5.json")
     ap.add_argument("--start", default="runs/start2b_v5.json")
     ap.add_argument("--gif")
+    ap.add_argument("--aim", action="store_true", help="offset release points to clear the incoming ball")
     a = ap.parse_args()
     JR, JL = make(a.balls)
     cy = load_cycle(JR, a.run or None, a.start or None)
@@ -365,7 +429,7 @@ def main():
         render, close = renderer(JR, a.balls)
         frames = []
     out = juggle2b(JR, JL, cy, n_balls=a.balls, throws=a.throws, seed=a.seed, kick=a.kick, preset=a.sensors,
-                   frames=frames, render=render, log=print)
+                   frames=frames, render=render, log=print, aim=AIM if a.aim else None)
     print(json.dumps({k: v for k, v in out.items() if k != "releases"}))
     if a.gif:
         close()

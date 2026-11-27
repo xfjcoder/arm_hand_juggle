@@ -401,12 +401,71 @@ from the catch spot and falls past the left hand:
 
 ![two balls, collision](media/fail_b2_collision_lost.gif)
 
+### Avoiding the collisions
+
+![three balls with the release-point offset, 0.05 m/s kicks](media/stage3_aim.gif)
+
+Three balls, realistic sensing, a random 0.05 m/s kick at every release (seed 50003, which loses a ball after
+6 catches without the offset; 15 catches shown).
+
+Two fixes, tried one at a time and together (120 seeds, realistic sensing, 30 catches):
+
+| | 10 cm spacing (Stage 3) | 15 cm | 20 cm | 10 cm + offset | 15 cm + offset | 20 cm + offset |
+|---|---|---|---|---|---|---|
+| 3 balls, 0.05 m/s | 16 | 28 | 20 | **69** | 34 | 20 |
+| 2 balls, 0.05 m/s | 30 | 32 | 19 | **76** | 36 | 19 |
+| 3 balls, 0.02 m/s | 114 | 108 | 118 | **119** | 109 | 118 |
+| 3 balls, no kick | 120 | | 120 | **120** | | |
+
+Held-out seeds 90000+, Stage 3 cycle without / with the offset: 3 balls at 0.05 m/s 14 -> **71**, 2 balls
+35 -> **81**, 3 balls at 0.02 m/s 114 -> **120/120**.
+
+- **Release-point offset** (`stage2b_juggle.aim_offset`, `--aim`): 0.2 s before each release the hand takes the
+  camera's fit of the ball it will catch next, which is the ball its throw will cross, and predicts their
+  closest approach. If it is under 10 cm, the release point moves up to 4 cm away from that ball and the throw
+  velocity changes by -offset / F, so the ball still lands on the same spot at the same time; at the
+  crossing the paths move ~0.8 x the offset apart. The stroke is re-planned from the current state within the
+  speed limit (else half the offset). Two things that do not work: shifting the release time (gravity cancels
+  between two balls, so relative to each other they move in a straight line, ~5 m/s and mostly vertical where
+  they cross; a time shift only slides along it), and a sideways velocity change alone (~5 cm of landing
+  error per cm gained). The offset is off for the two start-up throws: their separately tuned stroke does not
+  take it (with up to 4 cm: 49/120; 2 cm: 54/120 and 11 runs over the torque limit; 1 cm: 73/120, within
+  noise of none).
+- **Wider spacing** (catch spot 15 or 20 cm outside the throw spot; `stage2b_timing.py --wide`,
+  `stage2b_cem.py --d-y`): the gate cycles stay within the limits and the balls pass 15 / 19 cm apart, so
+  balls lost from the hand nearly vanish (20 cm, 0.05 m/s: no "not held" in 120 runs; 15 cm: 16, against 86
+  at 10 cm), and three balls at 0.02 m/s improve to 118/120. But
+  at 0.05 m/s nearly every run then ends out of reach: the catch spot further out leaves 7 cm of outward
+  reach instead of 12, and the tuned throws are less precise front to back (2.0 cm -> 4.5-5.4 cm spread at 0.02
+  m/s; unit cost 0.12-0.21 against 0.02). A re-tune with the reach floor applied sideways too (`--reach-y`)
+  could only reach 9.6 cm and threw worse (5/120).
+- With the offset, what is left (`stage3_failures.py classify --aim`, 0.05 m/s): 3 balls 18 start-up
+  collisions, 23 collisions during juggling (was 68), 10 out of reach; 2 balls 21 start-up collisions, 5
+  collisions (was 43), 18 out of reach.
+- A harness bug found on the way: with the wider cycles the ball lifts off the opening hand before the
+  release, the release detector fired there and again at the real release, and each such throw got two kicks.
+  Releases now count only once the stroke has reached the release point (the Stage 3 cycle never triggered it,
+  so its earlier numbers stand).
+
+### Four balls: feasibility gate (not started)
+
+Four balls on two hands need F = 2 V + D (Shannon), whatever the pattern. The gate (`stage2b_timing.py
+--four`, `logs/stage4_timing.txt`) over throw speeds 5-6.5 m/s (apex 1.3-2.2 m): only cycles with the shortest
+empty time, V = 0.30 s, stay within the arm limits, and only at 0.97-0.99 of them (the loop plans at <= 0.97,
+the tuned cycles run at 0.93). V = 0.35 s already leaves only ~12 cm of catch reach; at 0.30 s and the speed
+limit there is essentially none to chase an imperfect throw. Also, 4 balls on two hands are either two
+one-hand fountains (Stage 2a: stopped at the arm's limits) or a synchronous crossing whose mirror-image throws
+meet unless the hands throw one in front of the other (the left arm would no longer be the right arm's
+mirror). Not started.
+
 ## Next
 
-- The open problem, for two and three balls: with 0.05 m/s throw errors, balls collide in the air where the
-  rising and falling paths cross (most losses), and some arrive out of reach in the 0.35 s the hand is empty.
-  Candidates: wider spacing of the throw and catch spots (now 10 cm), throws re-aimed to clear the incoming
-  ball, more reach.
+- Start-up throws: the largest group of the remaining losses (18-21 runs in 120 at 0.05 m/s) are collisions
+  between the two start-up throws, nominally only 8 cm apart; a start-up stroke tuned with more separation (or
+  with the offset in its tuning) should remove most of them.
+- Out of reach (10-18 runs): the offset could also prefer directions that do not take the hand away from its
+  next catch.
+- Four balls would need a faster arm or a different pattern (see the gate above).
 - Path to hardware: UR arms take position/velocity streaming, not torque; finger speeds; friction and spin
   randomisation; safety.
 
@@ -434,5 +493,10 @@ PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --n 12
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --balls 3 --throws 15 --seed 7 --kick 0.02 --sensors real --gif media_full/stage3_real.gif
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick 0.05 --sensors real --ghost --out logs/stage3_ghost_b3_kick0.05.jsonl
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage3_failures.py classify --balls 3 --out logs/stage3_failures_b3.json
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick 0.05 --sensors real --aim 0.10 0.04 0.2 --aim-start 0 --out logs/fix_aimns_b3_kick0.05.jsonl
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --balls 3 --throws 15 --seed 50003 --kick 0.05 --sensors real --aim --gif media_full/stage3_aim.gif
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_timing.py --wide 0.15 0.20
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --gens 40 --incs 12 --inc-scale 2 --reach-min 0.12 --d-y 0.20 --init runs/cycle2b_v5.json --out runs/cycle2b_w20.json
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_timing.py --four
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage3_failures.py gif --balls 3 --seed 50000 --title "3 balls: collision, ball lost" --gif media_full/fail_b3_collision_lost.gif
 ```
