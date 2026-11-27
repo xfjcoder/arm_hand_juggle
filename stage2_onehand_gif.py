@@ -26,12 +26,12 @@ for name, x in VARIANTS:
     pl = Planner(J)
     cy = stage2_juggle.load_cycle(J, pl, x=x)
     J.m.geom_rgba[J.m.body_geomadr[J.ids.balls[1]]] = [0.2, 0.6, 1.0, 1.0]   # ball 2 bright blue
-    J.renderer = mj.Renderer(J.m, 480, 400)
+    J.renderer = mj.Renderer(J.m, 620, 400)                # tall: from the low carry up to the 1 m apex
     render = J.render
-    J.render = lambda: render(distance=2.7, azimuth=160, elevation=-6, lookat=[1.2, 0.27, 0.2])
+    J.render = lambda: render(distance=3.3, azimuth=160, elevation=-4, lookat=[1.2, 0.27, 0.3])
     frames = []
     r = stage2_juggle.juggle2(J, cy, cycles=10, seed=1, preset="ideal", noise=0.0, frames=frames, every=4)
-    for k in range(150):                                # keep going a little: watch the balls fall
+    for k in range(600):                                # 1.2 s more: watch the balls come down
         J.control_joint(J.d.qpos[J.ids.arm_q].copy(), np.zeros(6), np.zeros(6))
         mj.mj_step(J.m, J.d)
         if k % 4 == 0:
@@ -46,7 +46,7 @@ for name, x in VARIANTS:
         dr = ImageDraw.Draw(im)
         for i, (ln, col) in enumerate(zip(lines, [(255, 255, 255), (255, 220, 120), (255, 220, 120),
                                                    (255, 120, 120) if r["qd_ratio"] > 0.97 else (140, 255, 140)])):
-            dr.text((8, 6 + 22 * i), ln, fill=col, font=font)
+            dr.text((8, im.height - 94 + 22 * i), ln, fill=col, font=font)   # at the bottom, clear of the balls
         out.append(np.asarray(im))
     panels.append(out)
     print(lines, flush=True)
