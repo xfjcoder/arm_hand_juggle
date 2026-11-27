@@ -240,7 +240,7 @@ motion optimised together with the ball in the hand, a throw designed from scrat
 funnel-shaped hand (as in Ploeger et al. 2020) might. Three balls in one hand would need ~7 m/s throws and is
 out of reach, so the project moves to two arms, where each hand gets far more time per ball.
 
-## Stage 2b: two balls, two arms (ideal sensing: solid up to moderate throw errors)
+## Stage 2b: two balls, two arms (passed, ideal and realistic sensing, up to moderate throw errors)
 
 ![two arms, two balls, cascade rhythm](media/stage2b_ideal.gif)
 
@@ -300,10 +300,23 @@ Throw spread in the tuning unit: 0.9-1.3 cm front-back. At 0.05 m/s the kick alo
 axis (~6 cm radial). Half the failures are then balls caught far from the palm centre and lost from the hand,
 half are catches out of reach. One ball, same 0.05 test: 85/120 (its hand is empty ~0.9 s).
 
+**Realistic sensing** (`--sensors real`: camera 120 Hz, 20 ms delay, occlusion by the arms, 2% dropped
+frames; skin 100 Hz, 10 ms delay, 2 mm noise, 0.05 N threshold), same 120-seed test:
+
+| kick per axis | seeds 50000+ | fresh seeds 90000+ |
+|---|---|---|
+| none | **120/120** | **120/120** |
+| 0.02 m/s | **119/120** | **119/120** |
+| 0.05 m/s | 30/120, median 14 | |
+
+No measurable cost: each ball is tracked for ~0.5 s of its 0.9 s flight before the catch is committed, so 20 ms
+of delay, a few hidden or dropped frames and 2 mm noise barely move the predicted catch point (one-ball Stage 1
+was hurt more because its catch corrections were already near the speed limit).
+
+![two arms, two balls, realistic sensing](media/stage2b_real.gif)
+
 ## Next
 
-- **Stage 2b with realistic sensing** (camera latency, occlusion, dropouts; skin delay and noise) on the final
-  cycle. The camera errors act at the catch, so the 0.02 m/s result is the relevant baseline.
 - **Stage 3:** three balls on the same cycle.
 - Open: catching balls ~6 cm off target (the 0.05 m/s test) needs a hand that keeps an off-centre ball, or
   more reach than a UR10e gives in 0.35 s.
