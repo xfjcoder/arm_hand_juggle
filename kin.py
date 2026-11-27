@@ -14,8 +14,8 @@ PALM_UP = np.array([[0, 0, 1], [-1, 0, 0], [0, -1, 0]], float)
 HOME = np.array([0.0, -1.9, 1.9, -1.57, -1.57, 0.0])      # rough seed: elbow up, wrist bent down
 
 
-def palm_pose(m, d):
-    s = m.site(PALM_SITE).id
+def palm_pose(m, d, ids=None):
+    s = m.site(PALM_SITE).id if ids is None else ids.site
     return d.site_xpos[s].copy(), d.site_xmat[s].reshape(3, 3).copy()
 
 
@@ -23,7 +23,7 @@ def palm_jac(m, d, ids):
     """6 x 6: palm linear (rows 0-2) and angular (rows 3-5) velocity per arm joint velocity."""
     jp = np.zeros((3, m.nv))
     jr = np.zeros((3, m.nv))
-    mj.mj_jacSite(m, d, jp, jr, m.site(PALM_SITE).id)
+    mj.mj_jacSite(m, d, jp, jr, ids.site)
     return np.vstack([jp[:, ids.arm_v], jr[:, ids.arm_v]])
 
 
@@ -44,7 +44,7 @@ def ik(m, d, ids, pos, R=PALM_UP, q0=None, iters=200, tol=1e-4, damp=1e-3):
         d.qpos[ids.arm_q] = q
         mj.mj_kinematics(m, d)
         mj.mj_comPos(m, d)
-        p, Rc = palm_pose(m, d)
+        p, Rc = palm_pose(m, d, ids)
         e = np.concatenate([pos - p, rot_err(Rc, R)])
         if np.linalg.norm(e) < tol:
             break
@@ -53,3 +53,14 @@ def ik(m, d, ids, pos, R=PALM_UP, q0=None, iters=200, tol=1e-4, damp=1e-3):
         q = (q + np.pi) % (2 * np.pi) - np.pi          # keep every joint in [-pi, pi) (elbow's real range)
     mj.mj_forward(m, d)
     return q, float(np.linalg.norm(e))
+
+
+# Two-arm robot: the left arm (base at +y) in MIRROR_OFF - q is the mirror image, in the plane y = 0, of the
+# right arm (base at -y) in q: palm positions mirrored, palm frames mirrored (fingers and normal; the left
+# hand's x axis is flipped). Exact for the UR10e's kinematics (checked to 1e-15), so every joint velocity of
+# the left arm is minus the right arm's.
+MIRROR_OFF = np.array([np.pi, -np.pi, 0.0, -np.pi, 0.0, np.pi])
+
+
+def mirror(q):
+    return MIRROR_OFF - np.asarray(q)

@@ -25,16 +25,18 @@ BALL_MASS = 0.10
 TIMESTEP = 0.002
 
 
-def build_spec(n_balls=1, human=False):
+def arm_hand_spec(hand_side="right"):
+    """One UR10e with a Shadow Hand bolted to its flange (hand_side "right" or "left"), torque-motor arm."""
+    hp = "rh_" if hand_side == "right" else "lh_"
     arm = mj.MjSpec.from_file(str(MENAGERIE / "universal_robots_ur10e" / "ur10e.xml"))
-    hand = mj.MjSpec.from_file(str(MENAGERIE / "shadow_hand" / "right_hand.xml"))
+    hand = mj.MjSpec.from_file(str(MENAGERIE / "shadow_hand" / f"{hand_side}_hand.xml"))
     taken = {mt.name for mt in arm.materials}         # both models define e.g. "black": rename the hand's
     for mt in hand.materials:
         if mt.name in taken:
             for g in hand.geoms:
                 if g.material == mt.name:
-                    g.material = "rh_" + mt.name
-            mt.name = "rh_" + mt.name
+                    g.material = hp + mt.name
+            mt.name = hp + mt.name
     taken = {ms.name or Path(ms.file).stem for ms in arm.meshes}
     hand_meshdir = MENAGERIE / "shadow_hand" / hand.meshdir
     for ms in hand.meshes:
@@ -43,21 +45,15 @@ def build_spec(n_balls=1, human=False):
         if ms.name in taken:
             for g in hand.geoms:
                 if g.meshname == ms.name:
-                    g.meshname = "rh_" + ms.name
-            ms.name = "rh_" + ms.name
-    hand_root = hand.body("rh_forearm")
+                    g.meshname = hp + ms.name
+            ms.name = hp + ms.name
+    if hand_side == "left":                           # the left model has no grasp site: the right one's,
+        hand.body("lh_palm").add_site(name="grasp_site", pos=[0, -.035, 0.09], group=4)   # mirrored (x = 0)
+    hand_root = hand.body(hp + "forearm")
     hand_root.quat = [1, 0, 0, 0]                     # forearm z = flange z
     arm.body("base").quat = [1, 0, 0, 0]              # menagerie faces -x; face the juggling zone at +x
     site = arm.site("attachment_site")
     arm.attach(hand, site=site, prefix="")
-
-    arm.option.timestep = TIMESTEP
-    arm.option.integrator = mj.mjtIntegrator.mjINT_IMPLICITFAST
-    arm.option.cone = mj.mjtCone.mjCONE_ELLIPTIC
-    arm.option.impratio = 10
-    arm.visual.global_.offwidth = 1280
-    arm.visual.global_.offheight = 720
-
     for name, tmax in zip(ARM_ACTS, TORQUE_MAX):
         a = arm.actuator(name)
         a.gaintype = mj.mjtGain.mjGAIN_FIXED
@@ -66,6 +62,27 @@ def build_spec(n_balls=1, human=False):
         a.biasprm[:3] = [0, 0, 0]
         a.ctrlrange = [-tmax, tmax]
         a.forcerange = [-tmax, tmax]
+    return arm
+
+
+def build_spec(n_balls=1, human=False, arms=1, sep=0.7):
+    """arms=1: the Stage 0-2a robot, names unprefixed. arms=2: two of them, bases at y = -sep/2 (right arm,
+    right hand, names prefixed "R_") and +sep/2 (left arm, left hand, "L_"), both facing +x."""
+    if arms == 1:
+        arm = arm_hand_spec("right")
+    else:
+        arm = mj.MjSpec()
+        arm.compiler.degree = False
+        for pre, side, y in (("R_", "right", -sep / 2), ("L_", "left", sep / 2)):
+            frame = arm.worldbody.add_frame(pos=[0, y, 0])
+            arm.attach(arm_hand_spec(side), frame=frame, prefix=pre)
+
+    arm.option.timestep = TIMESTEP
+    arm.option.integrator = mj.mjtIntegrator.mjINT_IMPLICITFAST
+    arm.option.cone = mj.mjtCone.mjCONE_ELLIPTIC
+    arm.option.impratio = 10
+    arm.visual.global_.offwidth = 1280
+    arm.visual.global_.offheight = 720
 
     wb = arm.worldbody
     tex = arm.add_texture(name="grid", type=mj.mjtTexture.mjTEXTURE_2D, builtin=mj.mjtBuiltin.mjBUILTIN_CHECKER,
@@ -75,10 +92,12 @@ def build_spec(n_balls=1, human=False):
         # shoulder height: base 1.45 m above the floor (shoulder joint ~1.6 m); a torso-like column BEHIND the
         # base with a bracket, so the upper arm can hang down in front of it (visual only)
         wb.add_geom(name="floor", type=mj.mjtGeom.mjGEOM_PLANE, size=[4, 4, 0.05], material="grid", pos=[0, 0, -1.45])
-        wb.add_geom(name="torso", type=mj.mjtGeom.mjGEOM_BOX, size=[0.12, 0.2, 0.75], pos=[-0.24, 0, -0.75],
+        ys = [0.0] if arms == 1 else [-sep / 2, sep / 2]
+        wb.add_geom(name="torso", type=mj.mjtGeom.mjGEOM_BOX, size=[0.12, 0.2 + max(ys), 0.75], pos=[-0.24, 0, -0.75],
                     rgba=[.35, .35, .38, 1], contype=0, conaffinity=0)
-        wb.add_geom(name="bracket", type=mj.mjtGeom.mjGEOM_BOX, size=[0.16, 0.1, 0.02], pos=[-0.1, 0, -0.02],
-                    rgba=[.3, .3, .33, 1], contype=0, conaffinity=0)
+        for i, y in enumerate(ys):
+            wb.add_geom(name="bracket" + ("" if arms == 1 else str(i)), type=mj.mjtGeom.mjGEOM_BOX,
+                        size=[0.16, 0.1, 0.02], pos=[-0.1, y, -0.02], rgba=[.3, .3, .33, 1], contype=0, conaffinity=0)
     else:
         wb.add_geom(name="floor", type=mj.mjtGeom.mjGEOM_PLANE, size=[3, 3, 0.05], material="grid", pos=[0, 0, -0.8])
         wb.add_geom(name="pedestal", type=mj.mjtGeom.mjGEOM_CYLINDER, size=[0.1, 0.4, 0], pos=[0, 0, -0.4],
@@ -95,20 +114,23 @@ def build_spec(n_balls=1, human=False):
     return arm
 
 
-def build(n_balls=1, human=False):
-    return build_spec(n_balls, human).compile()
+def build(n_balls=1, human=False, arms=1, sep=0.7):
+    return build_spec(n_balls, human, arms, sep).compile()
 
 
 class Ids:
-    """Indices into qpos / qvel / ctrl for the arm, hand and balls."""
+    """Indices into qpos / qvel / ctrl for one arm (names prefixed `prefix`: "" single arm, "R_" / "L_"
+    two arms), its hand ("rh" / "lh") and the balls."""
 
-    def __init__(self, m):
-        self.arm_q = np.array([m.jnt_qposadr[m.joint(j).id] for j in ARM_JOINTS])
-        self.arm_v = np.array([m.jnt_dofadr[m.joint(j).id] for j in ARM_JOINTS])
-        self.arm_u = np.array([m.actuator(a).id for a in ARM_ACTS])
-        self.hand_u = np.array([i for i in range(m.nu) if i not in self.arm_u])
-        self.palm = m.body("rh_palm").id
-        self.forearm = m.body("rh_forearm").id
+    def __init__(self, m, prefix="", hand="rh"):
+        self.prefix, self.hand = prefix, hand
+        self.arm_q = np.array([m.jnt_qposadr[m.joint(prefix + j).id] for j in ARM_JOINTS])
+        self.arm_v = np.array([m.jnt_dofadr[m.joint(prefix + j).id] for j in ARM_JOINTS])
+        self.arm_u = np.array([m.actuator(prefix + a).id for a in ARM_ACTS])
+        self.hand_u = np.array([i for i in range(m.nu) if m.actuator(i).name.startswith(f"{prefix}{hand}_")])
+        self.palm = m.body(f"{prefix}{hand}_palm").id
+        self.forearm = m.body(f"{prefix}{hand}_forearm").id
+        self.site = m.site(prefix + "grasp_site").id
         self.balls = [m.body(f"ball{i}").id for i in range(sum(1 for i in range(m.nbody)
                                                               if m.body(i).name.startswith("ball")))]
         self.ball_q = [m.jnt_qposadr[m.joint(f"ball{i}").id] for i in range(len(self.balls))]

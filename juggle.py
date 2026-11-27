@@ -67,14 +67,16 @@ class Seg:
 
 
 class Juggler:
-    def __init__(self, n_balls=1, kp=600.0, kd=None, kr=600.0, human=False):
-        self.m = scene.build(n_balls, human)
-        self.d = mj.MjData(self.m)
-        self.ids = scene.Ids(self.m)
+    def __init__(self, n_balls=1, kp=600.0, kd=None, kr=600.0, human=False, side=None, m=None, d=None):
+        """side None: the one-arm robot. side "R" / "L": that arm of the two-arm robot (scene.build(arms=2)),
+        sharing model m and data d with the other arm's Juggler."""
+        self.m = scene.build(n_balls, human) if m is None else m
+        self.d = mj.MjData(self.m) if d is None else d
+        self.ids = scene.Ids(self.m) if side is None else scene.Ids(self.m, side + "_", "rh" if side == "R" else "lh")
         self.kp, self.kd = kp, (2 * np.sqrt(kp) if kd is None else kd)
         self.kr, self.kdr = kr, 2 * np.sqrt(kr)
         m = self.m
-        self.site = m.site(kin.PALM_SITE).id
+        self.site = self.ids.site
         hand = set()
         for b in range(m.nbody):
             x = b
@@ -94,8 +96,8 @@ class Juggler:
 
     def posture(self, named):
         u = np.zeros(self.m.nu)
-        for k, v in named.items():
-            u[self.m.actuator(k).id] = v
+        for k, v in named.items():                   # keys name the right hand of the one-arm robot
+            u[self.m.actuator(self.ids.prefix + self.ids.hand + k[2:]).id] = v
         return u
 
     # ---- state ----
