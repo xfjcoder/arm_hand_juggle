@@ -1,5 +1,7 @@
-"""Stage 2, one hand: close-up of one catch -> carry -> throw for each cycle tried, side by side, about
-1/8 speed (stage2_cem.unit: an incoming ball on the nominal path, no disturbances).
+"""Stage 2, one hand: one catch -> carry -> throw for each cycle tried, side by side, about 1/8 speed
+(stage2_cem.unit: an incoming ball on the nominal path, no disturbances). Each panel: the whole scene on top
+(the incoming ball from above and the thrown ball's full flight, until it comes back down), a close-up of the
+hand below.
 
     PYTHONPATH=.:../robolab python3 stage2_closeup_gif.py media_full/stage2_closeup.gif
 """
@@ -22,14 +24,16 @@ VARIANTS = [
 inc = dict(kick=np.zeros(3), off=np.zeros(3), spin=np.zeros(3))
 J.renderer = mj.Renderer(J.m, 420, 420)
 render = J.render
-J.render = lambda: render(distance=1.1, azimuth=150, elevation=-12, lookat=[1.25, 0.28, -0.2])
+J.render = lambda: np.concatenate([render(distance=3.2, azimuth=150, elevation=-5, lookat=[1.25, 0.28, 0.25]),
+                                   render(distance=1.1, azimuth=150, elevation=-12, lookat=[1.25, 0.28, -0.2])],
+                                  axis=0)
 font = ImageFont.load_default(size=17)
 panels = []
 for name, x in VARIANTS:
     cy = sc.build(J, B["pl"], B["base"], x)
     frames = []
     r = sc.unit(J, B["pl"], cy, inc, frames=frames, every=4)
-    for k in range(60):
+    for k in range(500):                                # 1 s more: the thrown ball's whole flight
         J.control_joint(J.d.qpos[J.ids.arm_q].copy(), np.zeros(6), np.zeros(6))
         mj.mj_step(J.m, J.d)
         if k % 4 == 0:

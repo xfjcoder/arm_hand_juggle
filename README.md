@@ -196,7 +196,8 @@ caught and held, but re-thrown at 1.4 m/s instead of 4.5.
 
 ![close-up: catch, carry, throw](media/stage2_closeup.gif)
 
-Close-up of one catch -> carry -> throw per cycle (an undisturbed incoming ball). 1: the ball rolls across the
+One catch -> carry -> throw per cycle (an undisturbed incoming ball): the whole scene on top, following the
+thrown ball until it comes back down, and a close-up of the hand below. 1: the ball rolls across the
 open palm and drops out during the carry. 2: the cage holds it, but the arm runs at 1.70x its speed limits
 and the throw is 3.0 m/s. 3: within the limits, the cage holds it through the carry and it slips out early in
 the throw, at 0.9 m/s.
