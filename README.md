@@ -240,10 +240,60 @@ motion optimised together with the ball in the hand, a throw designed from scrat
 funnel-shaped hand (as in Ploeger et al. 2020) might. Three balls in one hand would need ~7 m/s throws and is
 out of reach, so the project moves to two arms, where each hand gets far more time per ball.
 
+## Stage 2b: two balls, two arms (ideal sensing: works, but not yet robust to throw errors)
+
+![two arms, two balls, cascade rhythm](media/stage2b_ideal.gif)
+
+Two balls on the three-ball cascade rhythm, real time, front and three-quarter views, ideal sensing (12
+catches shown; this seed reaches 30 of 30).
+
+**The robot** (`scene.build(arms=2)`, `stage2b_scene.py`). Two UR10e arms 0.7 m apart, a right and a left
+Shadow Hand; in the Stage 1 poses the palms are 0.35 m apart.
+![two-arm scene](media/two_arm_scene.png)
+The left arm in `kin.MIRROR_OFF - q` is the exact mirror image of the right arm in q (positions, palm frames,
+and inverse-dynamics torques all match to 1e-15), so only the right arm's motion is designed and checked, and
+the left arm runs it mirrored, half a hand period later.
+
+**Gate** (`stage2b_timing.py`). Two patterns, each hand cycle tuned by CEM for joint speed, torque and keeping
+the ball seated:
+
+| pattern | arm limits | balls in the air |
+|---|---|---|
+| exchange: both hands throw across at once (F = V) | fine (0.66-1.00) | **collide**: mirror-image throws meet at the centre, even with one hand delayed |
+| cascade: alternate throws every Tc / 2, throw inside, catch 10 cm outside (D = 2F - 3V) | **0.72-0.99** for every candidate | 10 cm apart |
+
+So two balls run on the cascade cycle with every third throw empty, which is also exactly the Stage 3 cycle.
+Picked: 1 m tosses (F 0.90 s), hand empty V = 0.35 s, holding D = 0.75 s, a throw every 0.55 s.
+
+**Full simulation** (`stage2b_juggle.py`, `stage2b_cem.py`). What it took:
+- The gate treats the ball as fixed in the palm. In the simulation it rolls a few mm along the fingers during
+  the throw, and 3 mm there is 6 cm at the catch. The catch-carry-throw unit is tuned on the full simulation
+  (CEM, 17 numbers: the gate's plus a release-velocity bias, when the hand opens, the finger grip), with 12
+  disturbed incoming balls per candidate: front-back landing spread 7.2 cm -> 2.7 cm, worst 50 cm -> 14 cm.
+  Opening the hand early is far worse (the ball rolls forward off the fingers); the grip stays closed until
+  0.07 s before the release.
+- The start-up throw (from rest) is tuned the same way. Its first tuning gamed the score (ball velocity at the
+  first instant of separation, before being pushed again); both units now score the free flight 0.06 s later.
+- The loop must continue from where the previous segment ends (a jump in commanded velocity while the ball
+  is still on the palm cost 0.4 m/s of throw).
+- A constant bias in the loop (2.5 cm forward, 11 ms early) is taken out of the release velocity.
+
+**Robustness** (`stage2b_robust.py`, 120 seeds, ideal sensing, a random velocity kick at every release):
+
+| kick per axis | reach 30 catches | median | throw spread (front-back) |
+|---|---|---|---|
+| none | 106/120 | 30 | 1.6 cm |
+| 0.02 m/s | 113/120 | 30 | |
+| 0.05 m/s (Stage 1's test) | 12/120 | 4 | 5 cm |
+
+Every failure is the catch: a ball landing ~9 cm or more from the nominal spot cannot be reached in the 0.35 s
+the hand is empty within the joint speed limits (Stage 1's hand had ~0.9 s). One ball, same test: 85/120.
+
 ## Next
 
-- **Stage 2b:** a second UR10e + Shadow Hand facing the first; two balls with two hands, then
-  **Stage 3:** three balls (a cascade). Starts with the same kind of feasibility gate for two-hand patterns.
+- **Stage 2b, ideal sensing:** more catch reach for the 0.05 m/s test, e.g. a cascade cycle with a longer empty
+  time (the gate allows V up to 0.46 s at 1 m, or 0.52 s at 1.3 m), then realistic sensing.
+- **Stage 3:** three balls on the same cycle.
 
 ```
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_speed.py              # throw-speed feasibility (~35 s)
@@ -258,4 +308,10 @@ PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_timing_cem.py 0 0.2      # 
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_cem.py --gens 50 --out runs/cycle2_v2.json   # catch-carry-throw unit CEM (~25 min)
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_onehand_gif.py media_full/stage2_onehand.gif
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_closeup_gif.py media_full/stage2_closeup.gif
+PYTHONPATH=. MUJOCO_GL=egl python3 stage2b_scene.py                              # two-arm scene images
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_timing.py                   # two-hand gate (~5 min)
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --gens 40 --incs 12 --init runs/cycle2b_v2_init.json --out runs/cycle2b_v2.json   # (~25 min)
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --start runs/cycle2b_v2b.json --out runs/start2b_v2b.json
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --n 120 --kick 0.05 --sensors ideal --out logs/stage2b_v2b_ideal_kick0.05.jsonl
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --throws 12 --seed 50000 --gif media_full/stage2b_ideal.gif
 ```
