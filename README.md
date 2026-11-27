@@ -337,12 +337,10 @@ before the first throw. Balls pass about 10 cm apart where rising and falling pa
 
 A 100-throw run (realistic, 0.02 m/s) completes. As with two balls, realistic sensing costs nothing measurable.
 
-**Where the losses come from.** Every catch logged on 60 seeds at 0.05 m/s (`catch_info` diagnostic): the
-arm reaches its planned catch point to ~1 cm, but in the 41 lost catches the ball is 3-25 cm *above* it at
-the catch time, its velocity 0.2-1.8 m/s off the camera fit. All 41 hit another ball ~0.18 s before the catch:
-the ball just thrown up out of a hand meets the ball falling into it, where the cascade's paths cross ~10 cm
-apart. Rerun with ball-ball collisions switched off (`stage2b_robust.py --ghost`, diagnostic only), realistic
-sensing, 120 seeds:
+**Where the losses come from.** With every catch logged on 60 seeds at 0.05 m/s, the arm reaches its planned
+catch point to ~1 cm, but in the 41 lost catches the ball is 3-25 cm *above* it at the catch time, its velocity
+0.2-1.8 m/s off the camera fit. All 41 had hit another ball ~0.18 s before. Rerun with ball-ball collisions
+switched off (`stage2b_robust.py --ghost`, diagnostic only), realistic sensing, 120 seeds:
 
 | | collisions on | collisions off |
 |---|---|---|
@@ -350,8 +348,58 @@ sensing, 120 seeds:
 | 3 balls, 0.05 m/s | 16/120 | **99/120** (21 out of reach) |
 | 2 balls, 0.05 m/s | 30/120 | **92/120** (28 out of reach) |
 
-With collisions off no ball is lost from a hand; what is left is catches out of reach. (Why two balls
-end up out of reach more often than three is not yet checked.)
+With collisions off no ball is lost from a hand; what is left is catches out of reach.
+
+### Failure cases
+
+`stage3_failures.py classify` sorts every failed run (120 seeds, 0.05 m/s kicks, realistic sensing; a
+collision counts if it comes within 1 s before the failure):
+
+| | 3 balls | 2 balls |
+|---|---|---|
+| reached 30 catches | 16 | 30 |
+| collision, then the ball is not held | 68 | 43 |
+| collision at the start (before the first re-throw) | 18 | 21 |
+| collision, then out of reach | 8 | 6 |
+| out of reach, no collision | 10 | 20 |
+
+- **Where the balls collide:** 0.55 m above the hands (z 0.36-0.43 against catch height -0.17), one ball
+  rising at ~2.4 m/s and one falling at ~2.2 m/s, 5 m/s apart, in every case. It is the cascade's crossing: a
+  ball thrown up out of a hand ~0.18 s earlier meets the ball that hand will catch ~0.18 s later. Nominally
+  they pass ~10 cm apart there; ~6 cm throw errors close the gap.
+- **What happens next:** the falling ball is knocked 0.2-1.8 m/s off course. The camera fit catches up too
+  late to re-plan, so the hand arrives where the ball should have been; the ball meets the hand late and off
+  the palm centre and is not held, or its new path is out of reach.
+- **At the start:** a fifth (3 balls) to a third (2 balls) of the collisions happen at the very first crossing
+  (t = 1.20-1.23 s), between the two start-up throws. With no kicks the start is clean (120/120).
+- **Out of reach, no collision:** the ball lands a median 12 cm off target (90th percentile 14 cm), just past
+  the 12 cm catch reach the cycle was tuned to keep. The planner sees this ~0.3 s before the ball comes
+  down and stops the run.
+
+Each GIF below shows about 1.6 s in real time, then x8 slow motion around the collision (or the miss), and
+continues for 0.8 s after the failure. Balls are red, cyan and yellow, with trails of their last 0.3 s.
+
+**Collision, ball lost** (3 balls, seed 50000, after 12 catches). The rising cyan ball and the falling red
+ball bend at the contact; the red ball comes down off target and the left hand does not hold it:
+
+![collision, ball lost](media/fail_b3_collision_lost.gif)
+
+**Collision at the start** (3 balls, seed 50005). The first two throws meet at the first crossing:
+
+![collision at the start](media/fail_b3_start_collision.gif)
+
+**Collision, then out of reach** (3 balls, seed 50024, after 14 catches):
+
+![collision, out of reach](media/fail_b3_collision_reach.gif)
+
+**Out of reach, no collision** (3 balls, seed 50002, after 4 catches). The cyan ball comes down ~14 cm
+from the catch spot and falls past the left hand:
+
+![out of reach](media/fail_b3_reach.gif)
+
+**Two balls, collision, ball lost** (seed 50014, after 10 catches). The same crossing, with one slot empty:
+
+![two balls, collision](media/fail_b2_collision_lost.gif)
 
 ## Next
 
@@ -384,4 +432,7 @@ PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --n 120 --kick 0
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --throws 12 --seed 50000 --kick 0.02 --gif media_full/stage2b_ideal.gif
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --n 120 --seed0 90000 --kick 0.02 --sensors real --out logs/stage3_real_kick0.02_90000.jsonl
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --balls 3 --throws 15 --seed 7 --kick 0.02 --sensors real --gif media_full/stage3_real.gif
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick 0.05 --sensors real --ghost --out logs/stage3_ghost_b3_kick0.05.jsonl
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage3_failures.py classify --balls 3 --out logs/stage3_failures_b3.json
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage3_failures.py gif --balls 3 --seed 50000 --title "3 balls: collision, ball lost" --gif media_full/fail_b3_collision_lost.gif
 ```

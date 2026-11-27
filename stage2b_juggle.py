@@ -37,6 +37,7 @@ CATCH = "runs/catch5_v443.json"
 CAMERA = camera_pos(lookat=(1.0, 0.0, 0.4))           # the tracking camera, in front of the two-arm robot
 MIR = np.array([1.0, -1.0, 1.0])
 MIRX = np.array([-1.0, 1.0, 1.0])              # palm frame: the left hand's x axis is flipped
+BALL_RGBA = ([1.0, 0.25, 0.2, 1], [0.35, 0.85, 1.0, 1], [1.0, 0.85, 0.2, 1])   # GIF colours: red, cyan, yellow
 
 
 def load_cycle(JR, run="runs/cycle2b_v5.json", start="runs/start2b_v5.json"):
@@ -123,7 +124,8 @@ def reset2(m, d, hands, balls, settle=0.8):
 
 def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="ideal", noise=0.002, vmax_ratio=0.97,
              frames=None, render=None, every=16, log=None, correct=None, lead=0.25, data=None,
-             strict=False):
+             strict=False, on_step=None, tail=0.0):
+    """on_step(t): called after every physics step. tail: seconds to keep running after a failure (for GIFs)."""
     m, d = JR.m, JR.d
     dt = m.opt.timestep
     rng = np.random.default_rng(seed)
@@ -154,6 +156,7 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
     slot = lambda k: (k % 3) if (k % 3) < n_balls else None
     z_catch = cy["hit"][2]
     t, step, why, catches, thrown = 0.0, 0, None, 0, 0
+    t_fail = None
     releases = []
     while True:
         frames_in = [cam.step(t) for cam in cams]
@@ -284,18 +287,26 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                     q, qd, qdd = end
             J.control_joint(*h.out((q, qd, qdd)))
         mj.mj_step(m, d)
+        if on_step is not None:
+            on_step(t)
         if frames is not None and step % every == 0:
             frames.append(render())
         t += dt
         step += 1
-        if why or catches >= throws:
+        if catches >= throws:
             break
-        zs = [JR.ball(i)[0][2] for i in range(n_balls)]
-        if min(zs) < -1.4 or t > 120:
-            why = "ball dropped" if min(zs) < -1.4 else "time"
-            break
+        if not why:
+            zs = [JR.ball(i)[0][2] for i in range(n_balls)]
+            if min(zs) < -1.4 or t > 120:
+                why = "ball dropped" if min(zs) < -1.4 else "time"
+        if why:
+            if t_fail is None:
+                t_fail, why0 = t, why                     # later failures in the tail don't count
+            if t >= t_fail + tail:
+                break
     st = [h.J.stats for h in hands]
-    return dict(catches=catches, why=why if catches < throws else None, t=round(t, 2),
+    why = why0 if t_fail is not None else why
+    return dict(catches=catches, why=why if catches < throws else None, t=round(t if t_fail is None else t_fail, 3),
                 qd_ratio=round(max(s["qd_ratio"] for s in st), 3),
                 tau_sat=round(max(s["tau_sat"] / max(1, s["steps"]) for s in st), 4), releases=releases)
 
@@ -306,6 +317,34 @@ def make(n_balls=2):
     JR = juggle.Juggler(side="R", m=m, d=d)
     JL = juggle.Juggler(side="L", m=m, d=d)
     return JR, JL
+
+
+def renderer(JR, n_balls, size=(720, 540), extra=None):
+    """Front and three-quarter views side by side, framed from the hands' lowest pose (z -0.85) to the apex
+    (0.85); bright ball colours (red, cyan, yellow). extra() -> [(pos, radius, rgba)]: marker spheres drawn
+    into the scene (e.g. ball trails). Returns render() -> frame, and close()."""
+    r = mj.Renderer(JR.m, size[1], size[0])
+    for i, rgba in enumerate(BALL_RGBA[:n_balls]):
+        JR.m.geom_rgba[JR.m.body_geomadr[JR.ids.balls[i]]] = rgba        # bright on the dark background
+    JR.m.vis.headlight.ambient[:], JR.m.vis.headlight.diffuse[:] = [0.35] * 3, [0.6] * 3   # balls lit at the apex
+    cams = []
+    for az in (180, 145):
+        cam = mj.MjvCamera()
+        cam.lookat[:], cam.distance, cam.azimuth, cam.elevation = [0.9, 0.0, 0.0], 2.8, az, -6
+        cams.append(cam)
+
+    def render():
+        out = []
+        for cam in cams:
+            r.update_scene(JR.d, cam)
+            for pos, rad, rgba in (extra() if extra else []):
+                if r.scene.ngeom < r.scene.maxgeom:
+                    mj.mjv_initGeom(r.scene.geoms[r.scene.ngeom], mj.mjtGeom.mjGEOM_SPHERE, np.r_[rad, 0, 0],
+                                    np.asarray(pos, float), np.eye(3).ravel(), np.asarray(rgba, np.float32))
+                    r.scene.ngeom += 1
+            out.append(r.render())
+        return np.concatenate(out, 1)
+    return render, r.close
 
 
 def main():
@@ -323,28 +362,13 @@ def main():
     cy = load_cycle(JR, a.run or None, a.start or None)
     frames = render = None
     if a.gif:
-        # front and three-quarter views; frame from the hands' lowest pose (z -0.85) to the apex (0.85)
-        r = mj.Renderer(JR.m, 720, 540)
-        for i, rgba in enumerate(([1.0, 0.25, 0.2, 1], [0.35, 0.85, 1.0, 1], [1.0, 0.85, 0.2, 1])[:a.balls]):
-            JR.m.geom_rgba[JR.m.body_geomadr[JR.ids.balls[i]]] = rgba        # bright on the dark background
-        JR.m.vis.headlight.ambient[:], JR.m.vis.headlight.diffuse[:] = [0.35] * 3, [0.6] * 3   # balls lit at the apex
-        cams = []
-        for az in (180, 145):
-            cam = mj.MjvCamera()
-            cam.lookat[:], cam.distance, cam.azimuth, cam.elevation = [0.9, 0.0, 0.0], 2.8, az, -6
-            cams.append(cam)
-        def render():
-            out = []
-            for cam in cams:
-                r.update_scene(JR.d, cam)
-                out.append(r.render())
-            return np.concatenate(out, 1)
+        render, close = renderer(JR, a.balls)
         frames = []
     out = juggle2b(JR, JL, cy, n_balls=a.balls, throws=a.throws, seed=a.seed, kick=a.kick, preset=a.sensors,
                    frames=frames, render=render, log=print)
     print(json.dumps({k: v for k, v in out.items() if k != "releases"}))
     if a.gif:
-        r.close()
+        close()
         from robolab.media import save_gif
         save_gif(frames, a.gif, fps=30)
 

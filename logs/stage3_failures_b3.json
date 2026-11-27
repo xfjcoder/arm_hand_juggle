@@ -1,0 +1,2784 @@
+{
+ "summary": {
+  "balls": 3,
+  "kick": 0.05,
+  "sensors": "real",
+  "n": 120,
+  "seed0": 50000,
+  "categories": {
+   "collision -> lost": 68,
+   "reach": 10,
+   "start collision": 18,
+   "null": 16,
+   "collision -> reach": 8
+  },
+  "collision_z": [
+   0.36,
+   0.384,
+   0.426
+  ],
+  "collision_v_rel": [
+   4.65,
+   4.96,
+   5.18
+  ],
+  "one_rising_one_falling": 94,
+  "n_linked": 94,
+  "reach_miss_xy_cm": [
+   7.6,
+   12.2,
+   14.3
+  ],
+  "reach_miss_t_ms": [
+   1.0,
+   12.0,
+   19.0
+  ]
+ },
+ "runs": [
+  {
+   "seed": 50000,
+   "catches": 12,
+   "why": "not held (L)",
+   "t": 8.136,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 7.812,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.345,
+    "vz": [
+     -2.09,
+     2.37
+    ],
+    "v_rel": 4.59
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.027,
+    -0.095,
+    -0.032
+   ]
+  },
+  {
+   "seed": 50001,
+   "catches": 14,
+   "why": "not held (L)",
+   "t": 9.264,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 8.938,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.414,
+    "vz": [
+     2.4,
+     -2.31
+    ],
+    "v_rel": 4.87
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.037,
+    -0.085,
+    0.005
+   ]
+  },
+  {
+   "seed": 50002,
+   "catches": 4,
+   "why": "approach too fast (L)",
+   "t": 3.25,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.096,
+    0.101,
+    -0.001
+   ]
+  },
+  {
+   "seed": 50003,
+   "catches": 6,
+   "why": "not held (L)",
+   "t": 4.85,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 4.524,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.397,
+    "vz": [
+     -2.31,
+     2.44
+    ],
+    "v_rel": 4.92
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.026,
+    -0.073,
+    -0.004
+   ]
+  },
+  {
+   "seed": 50004,
+   "catches": 19,
+   "why": "not held (R)",
+   "t": 12.022,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 11.704,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.431,
+    "vz": [
+     -2.53,
+     2.42
+    ],
+    "v_rel": 5.09
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.019,
+    0.065,
+    0.015
+   ]
+  },
+  {
+   "seed": 50005,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.538,
+   "category": "start collision",
+   "collision": {
+    "t": 1.214,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.419,
+    "vz": [
+     -2.39,
+     2.48
+    ],
+    "v_rel": 5.03
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.014,
+    -0.064,
+    -0.005
+   ]
+  },
+  {
+   "seed": 50006,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.534,
+   "category": "start collision",
+   "collision": {
+    "t": 1.214,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.413,
+    "vz": [
+     -2.47,
+     2.54
+    ],
+    "v_rel": 5.14
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.003,
+    -0.039,
+    -0.008
+   ]
+  },
+  {
+   "seed": 50007,
+   "catches": 22,
+   "why": "not held (L)",
+   "t": 13.644,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 13.328,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.357,
+    "vz": [
+     -2.27,
+     2.45
+    ],
+    "v_rel": 4.87
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.039,
+    -0.068,
+    -0.025
+   ]
+  },
+  {
+   "seed": 50008,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50009,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50010,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.558,
+   "category": "start collision",
+   "collision": {
+    "t": 1.218,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.445,
+    "vz": [
+     -2.27,
+     2.44
+    ],
+    "v_rel": 4.89
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.042,
+    -0.07,
+    0.007
+   ]
+  },
+  {
+   "seed": 50011,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.558,
+   "category": "start collision",
+   "collision": {
+    "t": 1.214,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.438,
+    "vz": [
+     -2.19,
+     2.45
+    ],
+    "v_rel": 4.78
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.002,
+    -0.07,
+    0.002
+   ]
+  },
+  {
+   "seed": 50012,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.552,
+   "category": "start collision",
+   "collision": {
+    "t": 1.212,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.427,
+    "vz": [
+     -2.19,
+     2.4
+    ],
+    "v_rel": 4.75
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.009,
+    -0.065,
+    -0.003
+   ]
+  },
+  {
+   "seed": 50013,
+   "catches": 0,
+   "why": "approach too fast (L)",
+   "t": 1.046,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.097,
+    0.023,
+    -0.013
+   ]
+  },
+  {
+   "seed": 50014,
+   "catches": 3,
+   "why": "not held (R)",
+   "t": 3.188,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.872,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.383,
+    "vz": [
+     -2.43,
+     2.39
+    ],
+    "v_rel": 4.96
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.074,
+    0.097,
+    -0.009
+   ]
+  },
+  {
+   "seed": 50015,
+   "catches": 5,
+   "why": "not held (R)",
+   "t": 4.326,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.97,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.394,
+    "vz": [
+     2.28,
+     -2.09
+    ],
+    "v_rel": 4.47
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.001,
+    0.142,
+    -0.006
+   ]
+  },
+  {
+   "seed": 50016,
+   "catches": 3,
+   "why": "not held (R)",
+   "t": 3.176,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.87,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.372,
+    "vz": [
+     -2.52,
+     2.52
+    ],
+    "v_rel": 5.19
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.03,
+    0.063,
+    -0.016
+   ]
+  },
+  {
+   "seed": 50017,
+   "catches": 9,
+   "why": "not held (R)",
+   "t": 6.486,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 6.172,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.373,
+    "vz": [
+     -2.37,
+     2.5
+    ],
+    "v_rel": 5.02
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.025,
+    0.065,
+    -0.017
+   ]
+  },
+  {
+   "seed": 50018,
+   "catches": 16,
+   "why": "not held (L)",
+   "t": 10.356,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 10.04,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.403,
+    "vz": [
+     -2.47,
+     2.49
+    ],
+    "v_rel": 5.08
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.036,
+    -0.055,
+    -0.0
+   ]
+  },
+  {
+   "seed": 50019,
+   "catches": 2,
+   "why": "not held (L)",
+   "t": 2.622,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.31,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.363,
+    "vz": [
+     2.53,
+     -2.34
+    ],
+    "v_rel": 5.02
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.044,
+    -0.065,
+    -0.023
+   ]
+  },
+  {
+   "seed": 50020,
+   "catches": 22,
+   "why": "not held (L)",
+   "t": 13.668,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 13.348,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.417,
+    "vz": [
+     -2.46,
+     2.54
+    ],
+    "v_rel": 5.14
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.023,
+    -0.062,
+    0.006
+   ]
+  },
+  {
+   "seed": 50021,
+   "catches": 7,
+   "why": "not held (R)",
+   "t": 5.402,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 5.076,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.392,
+    "vz": [
+     -2.26,
+     2.28
+    ],
+    "v_rel": 4.69
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.032,
+    0.083,
+    -0.005
+   ]
+  },
+  {
+   "seed": 50022,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50023,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.55,
+   "category": "start collision",
+   "collision": {
+    "t": 1.214,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.425,
+    "vz": [
+     -2.27,
+     2.38
+    ],
+    "v_rel": 4.81
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.004,
+    -0.074,
+    -0.002
+   ]
+  },
+  {
+   "seed": 50024,
+   "catches": 14,
+   "why": "approach too fast (L)",
+   "t": 8.76,
+   "category": "collision -> reach",
+   "collision": {
+    "t": 8.374,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.36,
+    "vz": [
+     -2.46,
+     2.57
+    ],
+    "v_rel": 5.11
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.023,
+    -0.005,
+    -0.014
+   ]
+  },
+  {
+   "seed": 50025,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50026,
+   "catches": 4,
+   "why": "not held (L)",
+   "t": 3.762,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.426,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.399,
+    "vz": [
+     -2.23,
+     2.15
+    ],
+    "v_rel": 4.54
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.027,
+    -0.099,
+    0.001
+   ]
+  },
+  {
+   "seed": 50027,
+   "catches": 2,
+   "why": "not held (L)",
+   "t": 2.628,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.312,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.37,
+    "vz": [
+     2.52,
+     -2.32
+    ],
+    "v_rel": 4.99
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.07,
+    -0.087,
+    -0.019
+   ]
+  },
+  {
+   "seed": 50028,
+   "catches": 22,
+   "why": "not held (L)",
+   "t": 13.656,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 13.342,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.392,
+    "vz": [
+     -2.43,
+     2.49
+    ],
+    "v_rel": 5.05
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.007,
+    -0.06,
+    -0.006
+   ]
+  },
+  {
+   "seed": 50029,
+   "catches": 5,
+   "why": "approach too fast (R)",
+   "t": 3.802,
+   "category": "collision -> reach",
+   "collision": {
+    "t": 3.422,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.392,
+    "vz": [
+     -2.34,
+     2.43
+    ],
+    "v_rel": 4.87
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.025,
+    0.05,
+    -0.01
+   ]
+  },
+  {
+   "seed": 50030,
+   "catches": 28,
+   "why": "not held (L)",
+   "t": 16.986,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 16.658,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.437,
+    "vz": [
+     -2.43,
+     2.56
+    ],
+    "v_rel": 5.14
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.027,
+    -0.081,
+    0.015
+   ]
+  },
+  {
+   "seed": 50031,
+   "catches": 4,
+   "why": "approach too fast (L)",
+   "t": 3.25,
+   "category": "collision -> reach",
+   "collision": {
+    "t": 2.862,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.373,
+    "vz": [
+     -2.25,
+     2.51
+    ],
+    "v_rel": 4.9
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.023,
+    0.069,
+    -0.001
+   ]
+  },
+  {
+   "seed": 50032,
+   "catches": 0,
+   "why": "approach too fast (L)",
+   "t": 1.046,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.076,
+    -0.011,
+    -0.017
+   ]
+  },
+  {
+   "seed": 50033,
+   "catches": 9,
+   "why": "not held (R)",
+   "t": 6.516,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 6.18,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.409,
+    "vz": [
+     -2.22,
+     2.36
+    ],
+    "v_rel": 4.7
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.051,
+    0.107,
+    0.001
+   ]
+  },
+  {
+   "seed": 50034,
+   "catches": 8,
+   "why": "not held (L)",
+   "t": 5.954,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 5.636,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.401,
+    "vz": [
+     2.25,
+     -2.46
+    ],
+    "v_rel": 4.84
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.066,
+    -0.084,
+    0.003
+   ]
+  },
+  {
+   "seed": 50035,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.536,
+   "category": "start collision",
+   "collision": {
+    "t": 1.204,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.398,
+    "vz": [
+     -2.18,
+     2.44
+    ],
+    "v_rel": 4.72
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.016,
+    -0.099,
+    -0.018
+   ]
+  },
+  {
+   "seed": 50036,
+   "catches": 15,
+   "why": "approach too fast (R)",
+   "t": 9.312,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.123,
+    -0.057,
+    -0.001
+   ]
+  },
+  {
+   "seed": 50037,
+   "catches": 3,
+   "why": "not held (R)",
+   "t": 3.224,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.864,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.375,
+    "vz": [
+     -2.07,
+     2.2
+    ],
+    "v_rel": 4.34
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.021,
+    0.127,
+    -0.014
+   ]
+  },
+  {
+   "seed": 50038,
+   "catches": 10,
+   "why": "not held (L)",
+   "t": 7.032,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 6.722,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.366,
+    "vz": [
+     -2.44,
+     2.54
+    ],
+    "v_rel": 5.11
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.011,
+    -0.065,
+    -0.02
+   ]
+  },
+  {
+   "seed": 50039,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.544,
+   "category": "start collision",
+   "collision": {
+    "t": 1.214,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.422,
+    "vz": [
+     -2.36,
+     2.47
+    ],
+    "v_rel": 4.98
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.026,
+    -0.039,
+    -0.003
+   ]
+  },
+  {
+   "seed": 50040,
+   "catches": 3,
+   "why": "not held (R)",
+   "t": 3.192,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.86,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.364,
+    "vz": [
+     -2.14,
+     2.33
+    ],
+    "v_rel": 4.64
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.001,
+    0.101,
+    -0.021
+   ]
+  },
+  {
+   "seed": 50041,
+   "catches": 0,
+   "why": "approach too fast (L)",
+   "t": 1.046,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.072,
+    0.03,
+    0.007
+   ]
+  },
+  {
+   "seed": 50042,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.544,
+   "category": "start collision",
+   "collision": {
+    "t": 1.212,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.418,
+    "vz": [
+     -2.33,
+     2.47
+    ],
+    "v_rel": 4.98
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.04,
+    -0.055,
+    -0.006
+   ]
+  },
+  {
+   "seed": 50043,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50044,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50045,
+   "catches": 21,
+   "why": "not held (R)",
+   "t": 13.116,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 12.778,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.36,
+    "vz": [
+     -2.12,
+     2.31
+    ],
+    "v_rel": 4.52
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.004,
+    0.123,
+    -0.022
+   ]
+  },
+  {
+   "seed": 50046,
+   "catches": 7,
+   "why": "not held (R)",
+   "t": 5.398,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 5.074,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.392,
+    "vz": [
+     -2.32,
+     2.46
+    ],
+    "v_rel": 4.92
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.054,
+    0.077,
+    -0.007
+   ]
+  },
+  {
+   "seed": 50047,
+   "catches": 2,
+   "why": "approach too fast (L)",
+   "t": 2.148,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.034,
+    0.103,
+    -0.026
+   ]
+  },
+  {
+   "seed": 50048,
+   "catches": 10,
+   "why": "not held (L)",
+   "t": 7.014,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 6.708,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.327,
+    "vz": [
+     -2.26,
+     2.44
+    ],
+    "v_rel": 4.87
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.038,
+    -0.065,
+    -0.041
+   ]
+  },
+  {
+   "seed": 50049,
+   "catches": 16,
+   "why": "not held (L)",
+   "t": 10.358,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 10.036,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.397,
+    "vz": [
+     -2.38,
+     2.46
+    ],
+    "v_rel": 5.0
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.009,
+    -0.09,
+    -0.003
+   ]
+  },
+  {
+   "seed": 50050,
+   "catches": 10,
+   "why": "not held (L)",
+   "t": 7.048,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 6.73,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.399,
+    "vz": [
+     -2.46,
+     2.63
+    ],
+    "v_rel": 5.21
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.044,
+    -0.053,
+    -0.005
+   ]
+  },
+  {
+   "seed": 50051,
+   "catches": 6,
+   "why": "not held (L)",
+   "t": 4.834,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 4.516,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.367,
+    "vz": [
+     -2.39,
+     2.61
+    ],
+    "v_rel": 5.13
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.031,
+    -0.092,
+    -0.021
+   ]
+  },
+  {
+   "seed": 50052,
+   "catches": 2,
+   "why": "not held (L)",
+   "t": 2.626,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.312,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.368,
+    "vz": [
+     2.54,
+     -2.33
+    ],
+    "v_rel": 5.02
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.05,
+    -0.075,
+    -0.02
+   ]
+  },
+  {
+   "seed": 50053,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50054,
+   "catches": 2,
+   "why": "not held (L)",
+   "t": 2.656,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.32,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.393,
+    "vz": [
+     2.26,
+     -2.2
+    ],
+    "v_rel": 4.61
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.016,
+    -0.093,
+    -0.005
+   ]
+  },
+  {
+   "seed": 50055,
+   "catches": 8,
+   "why": "approach too fast (L)",
+   "t": 5.454,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.005,
+    0.139,
+    -0.018
+   ]
+  },
+  {
+   "seed": 50056,
+   "catches": 11,
+   "why": "not held (R)",
+   "t": 7.586,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 7.28,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.374,
+    "vz": [
+     2.47,
+     -2.53
+    ],
+    "v_rel": 5.16
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.028,
+    0.066,
+    -0.014
+   ]
+  },
+  {
+   "seed": 50057,
+   "catches": 19,
+   "why": "not held (R)",
+   "t": 12.016,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 11.692,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.408,
+    "vz": [
+     -2.36,
+     2.43
+    ],
+    "v_rel": 4.95
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.031,
+    0.076,
+    0.003
+   ]
+  },
+  {
+   "seed": 50058,
+   "catches": 21,
+   "why": "approach too fast (R)",
+   "t": 12.618,
+   "category": "collision -> reach",
+   "collision": {
+    "t": 12.226,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.369,
+    "vz": [
+     2.38,
+     -2.1
+    ],
+    "v_rel": 4.6
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.029,
+    -0.015,
+    -0.006
+   ]
+  },
+  {
+   "seed": 50059,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50060,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50061,
+   "catches": 5,
+   "why": "not held (R)",
+   "t": 4.28,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.966,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.37,
+    "vz": [
+     2.54,
+     -2.33
+    ],
+    "v_rel": 5.02
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.001,
+    0.083,
+    -0.019
+   ]
+  },
+  {
+   "seed": 50062,
+   "catches": 28,
+   "why": "not held (L)",
+   "t": 16.954,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 16.642,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.381,
+    "vz": [
+     -2.45,
+     2.64
+    ],
+    "v_rel": 5.22
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.005,
+    -0.058,
+    -0.015
+   ]
+  },
+  {
+   "seed": 50063,
+   "catches": 2,
+   "why": "not held (L)",
+   "t": 2.636,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.314,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.376,
+    "vz": [
+     2.46,
+     -2.29
+    ],
+    "v_rel": 4.92
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.044,
+    -0.08,
+    -0.015
+   ]
+  },
+  {
+   "seed": 50064,
+   "catches": 16,
+   "why": "approach too fast (L)",
+   "t": 9.862,
+   "category": "collision -> reach",
+   "collision": {
+    "t": 9.48,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.376,
+    "vz": [
+     -2.3,
+     2.32
+    ],
+    "v_rel": 4.77
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.046,
+    0.056,
+    -0.027
+   ]
+  },
+  {
+   "seed": 50065,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.552,
+   "category": "start collision",
+   "collision": {
+    "t": 1.214,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.431,
+    "vz": [
+     -2.27,
+     2.44
+    ],
+    "v_rel": 4.88
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.047,
+    -0.05,
+    0.0
+   ]
+  },
+  {
+   "seed": 50066,
+   "catches": 13,
+   "why": "not held (R)",
+   "t": 8.708,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 8.392,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.423,
+    "vz": [
+     -2.52,
+     2.62
+    ],
+    "v_rel": 5.27
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.049,
+    0.063,
+    0.008
+   ]
+  },
+  {
+   "seed": 50067,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.542,
+   "category": "start collision",
+   "collision": {
+    "t": 1.216,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.421,
+    "vz": [
+     -2.42,
+     2.45
+    ],
+    "v_rel": 5.03
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.022,
+    -0.043,
+    -0.003
+   ]
+  },
+  {
+   "seed": 50068,
+   "catches": 1,
+   "why": "not held (R)",
+   "t": 2.096,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 1.772,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.398,
+    "vz": [
+     -2.36,
+     2.32
+    ],
+    "v_rel": 4.86
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.077,
+    0.113,
+    -0.005
+   ]
+  },
+  {
+   "seed": 50069,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50070,
+   "catches": 1,
+   "why": "not held (R)",
+   "t": 2.074,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 1.766,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.369,
+    "vz": [
+     -2.52,
+     2.46
+    ],
+    "v_rel": 5.13
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.071,
+    0.07,
+    -0.02
+   ]
+  },
+  {
+   "seed": 50071,
+   "catches": 13,
+   "why": "not held (R)",
+   "t": 8.686,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 8.376,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.368,
+    "vz": [
+     -2.42,
+     2.5
+    ],
+    "v_rel": 5.06
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.0,
+    0.059,
+    -0.019
+   ]
+  },
+  {
+   "seed": 50072,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50073,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.536,
+   "category": "start collision",
+   "collision": {
+    "t": 1.206,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.404,
+    "vz": [
+     -2.26,
+     2.49
+    ],
+    "v_rel": 4.92
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.031,
+    -0.046,
+    -0.014
+   ]
+  },
+  {
+   "seed": 50074,
+   "catches": 27,
+   "why": "not held (R)",
+   "t": 16.432,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 16.08,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.358,
+    "vz": [
+     -2.07,
+     2.36
+    ],
+    "v_rel": 4.53
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.024,
+    0.114,
+    -0.025
+   ]
+  },
+  {
+   "seed": 50075,
+   "catches": 7,
+   "why": "not held (R)",
+   "t": 5.382,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 5.07,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.376,
+    "vz": [
+     -2.42,
+     2.61
+    ],
+    "v_rel": 5.16
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.031,
+    0.052,
+    -0.017
+   ]
+  },
+  {
+   "seed": 50076,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50077,
+   "catches": 4,
+   "why": "not held (L)",
+   "t": 3.764,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.44,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.438,
+    "vz": [
+     -2.49,
+     2.41
+    ],
+    "v_rel": 5.05
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.047,
+    -0.077,
+    0.019
+   ]
+  },
+  {
+   "seed": 50078,
+   "catches": 4,
+   "why": "not held (L)",
+   "t": 3.744,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.418,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.387,
+    "vz": [
+     -2.27,
+     2.45
+    ],
+    "v_rel": 4.88
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.002,
+    -0.077,
+    -0.01
+   ]
+  },
+  {
+   "seed": 50079,
+   "catches": 7,
+   "why": "not held (L)",
+   "t": 5.044,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 4.522,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.373,
+    "vz": [
+     -2.49,
+     2.55
+    ],
+    "v_rel": 5.17
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.016,
+    0.043,
+    -0.028
+   ]
+  },
+  {
+   "seed": 50080,
+   "catches": 17,
+   "why": "not held (R)",
+   "t": 10.912,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 10.58,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.382,
+    "vz": [
+     2.48,
+     -2.29
+    ],
+    "v_rel": 4.91
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.019,
+    0.086,
+    -0.012
+   ]
+  },
+  {
+   "seed": 50081,
+   "catches": 8,
+   "why": "not held (L)",
+   "t": 5.928,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 5.62,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.368,
+    "vz": [
+     2.68,
+     -2.49
+    ],
+    "v_rel": 5.32
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.002,
+    -0.066,
+    -0.021
+   ]
+  },
+  {
+   "seed": 50082,
+   "catches": 1,
+   "why": "not held (R)",
+   "t": 2.084,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 1.774,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.392,
+    "vz": [
+     -2.56,
+     2.49
+    ],
+    "v_rel": 5.18
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.029,
+    0.084,
+    -0.008
+   ]
+  },
+  {
+   "seed": 50083,
+   "catches": 3,
+   "why": "not held (R)",
+   "t": 3.178,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.868,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.369,
+    "vz": [
+     -2.45,
+     2.45
+    ],
+    "v_rel": 5.03
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.0,
+    0.058,
+    -0.017
+   ]
+  },
+  {
+   "seed": 50084,
+   "catches": 7,
+   "why": "not held (R)",
+   "t": 5.434,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 5.056,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.34,
+    "vz": [
+     -2.12,
+     2.4
+    ],
+    "v_rel": 4.67
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.01,
+    0.108,
+    -0.034
+   ]
+  },
+  {
+   "seed": 50085,
+   "catches": 11,
+   "why": "approach too fast (R)",
+   "t": 7.108,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    0.026,
+    -0.142,
+    -0.015
+   ]
+  },
+  {
+   "seed": 50086,
+   "catches": 10,
+   "why": "not held (L)",
+   "t": 7.03,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 6.718,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.355,
+    "vz": [
+     -2.31,
+     2.41
+    ],
+    "v_rel": 4.86
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.065,
+    -0.085,
+    -0.025
+   ]
+  },
+  {
+   "seed": 50087,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.534,
+   "category": "start collision",
+   "collision": {
+    "t": 1.214,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.415,
+    "vz": [
+     -2.47,
+     2.57
+    ],
+    "v_rel": 5.18
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.007,
+    -0.045,
+    -0.008
+   ]
+  },
+  {
+   "seed": 50088,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50089,
+   "catches": 24,
+   "why": "not held (L)",
+   "t": 14.752,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 14.436,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.377,
+    "vz": [
+     -2.32,
+     2.5
+    ],
+    "v_rel": 4.99
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.027,
+    -0.073,
+    -0.015
+   ]
+  },
+  {
+   "seed": 50090,
+   "catches": 5,
+   "why": "not held (R)",
+   "t": 4.288,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.97,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.381,
+    "vz": [
+     2.5,
+     -2.38
+    ],
+    "v_rel": 5.04
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.028,
+    0.062,
+    -0.012
+   ]
+  },
+  {
+   "seed": 50091,
+   "catches": 2,
+   "why": "not held (L)",
+   "t": 2.632,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 2.316,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.365,
+    "vz": [
+     2.28,
+     -2.36
+    ],
+    "v_rel": 4.81
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.02,
+    -0.073,
+    -0.017
+   ]
+  },
+  {
+   "seed": 50092,
+   "catches": 10,
+   "why": "not held (L)",
+   "t": 7.028,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 6.72,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.366,
+    "vz": [
+     -2.43,
+     2.62
+    ],
+    "v_rel": 5.19
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.004,
+    -0.056,
+    -0.022
+   ]
+  },
+  {
+   "seed": 50093,
+   "catches": 27,
+   "why": "not held (R)",
+   "t": 16.412,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 16.096,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.384,
+    "vz": [
+     -2.41,
+     2.4
+    ],
+    "v_rel": 4.94
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.06,
+    0.082,
+    -0.009
+   ]
+  },
+  {
+   "seed": 50094,
+   "catches": 4,
+   "why": "not held (L)",
+   "t": 3.774,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.424,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.395,
+    "vz": [
+     -2.31,
+     2.31
+    ],
+    "v_rel": 4.76
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.019,
+    -0.082,
+    -0.003
+   ]
+  },
+  {
+   "seed": 50095,
+   "catches": 13,
+   "why": "not held (L)",
+   "t": 8.374,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 7.818,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.343,
+    "vz": [
+     -2.53,
+     2.74
+    ],
+    "v_rel": 5.41
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.029,
+    -0.08,
+    -0.026
+   ]
+  },
+  {
+   "seed": 50096,
+   "catches": 13,
+   "why": "not held (R)",
+   "t": 8.706,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 8.378,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.383,
+    "vz": [
+     -2.22,
+     2.31
+    ],
+    "v_rel": 4.69
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.049,
+    0.108,
+    -0.01
+   ]
+  },
+  {
+   "seed": 50097,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.534,
+   "category": "start collision",
+   "collision": {
+    "t": 1.208,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.402,
+    "vz": [
+     -2.3,
+     2.45
+    ],
+    "v_rel": 4.93
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.0,
+    -0.07,
+    -0.014
+   ]
+  },
+  {
+   "seed": 50098,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.554,
+   "category": "start collision",
+   "collision": {
+    "t": 1.226,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.455,
+    "vz": [
+     -2.48,
+     2.5
+    ],
+    "v_rel": 5.13
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.003,
+    -0.058,
+    0.013
+   ]
+  },
+  {
+   "seed": 50099,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50100,
+   "catches": 20,
+   "why": "not held (L)",
+   "t": 12.536,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 12.226,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.359,
+    "vz": [
+     2.54,
+     -2.31
+    ],
+    "v_rel": 5.03
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.012,
+    -0.074,
+    -0.026
+   ]
+  },
+  {
+   "seed": 50101,
+   "catches": 5,
+   "why": "not held (L)",
+   "t": 3.914,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.432,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.424,
+    "vz": [
+     -2.53,
+     2.68
+    ],
+    "v_rel": 5.35
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.065,
+    -0.074,
+    -0.003
+   ]
+  },
+  {
+   "seed": 50102,
+   "catches": 26,
+   "why": "not held (L)",
+   "t": 15.852,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 15.532,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.358,
+    "vz": [
+     2.43,
+     -2.22
+    ],
+    "v_rel": 4.83
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.004,
+    -0.097,
+    -0.025
+   ]
+  },
+  {
+   "seed": 50103,
+   "catches": 11,
+   "why": "not held (R)",
+   "t": 7.634,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 7.282,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.403,
+    "vz": [
+     2.3,
+     -2.25
+    ],
+    "v_rel": 4.71
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.001,
+    0.103,
+    0.0
+   ]
+  },
+  {
+   "seed": 50104,
+   "catches": 13,
+   "why": "approach too fast (R)",
+   "t": 8.21,
+   "category": "collision -> reach",
+   "collision": {
+    "t": 7.82,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.368,
+    "vz": [
+     -2.18,
+     2.39
+    ],
+    "v_rel": 4.68
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.01,
+    -0.033,
+    -0.011
+   ]
+  },
+  {
+   "seed": 50105,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50106,
+   "catches": 11,
+   "why": "approach too fast (R)",
+   "t": 7.108,
+   "category": "collision -> reach",
+   "collision": {
+    "t": 6.732,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.397,
+    "vz": [
+     -2.46,
+     2.47
+    ],
+    "v_rel": 5.04
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.022,
+    0.056,
+    -0.014
+   ]
+  },
+  {
+   "seed": 50107,
+   "catches": 7,
+   "why": "not held (R)",
+   "t": 5.38,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 5.07,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.365,
+    "vz": [
+     -2.4,
+     2.43
+    ],
+    "v_rel": 4.97
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.058,
+    0.075,
+    -0.019
+   ]
+  },
+  {
+   "seed": 50108,
+   "catches": 1,
+   "why": "not held (R)",
+   "t": 2.104,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 1.76,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.364,
+    "vz": [
+     -2.23,
+     2.28
+    ],
+    "v_rel": 4.66
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.016,
+    0.1,
+    -0.022
+   ]
+  },
+  {
+   "seed": 50109,
+   "catches": 30,
+   "why": null,
+   "t": 17.574,
+   "category": null,
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": null
+  },
+  {
+   "seed": 50110,
+   "catches": 5,
+   "why": "not held (R)",
+   "t": 4.318,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 3.988,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.437,
+    "vz": [
+     2.37,
+     -2.4
+    ],
+    "v_rel": 4.94
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.009,
+    0.082,
+    0.018
+   ]
+  },
+  {
+   "seed": 50111,
+   "catches": 3,
+   "why": "approach too fast (R)",
+   "t": 2.7,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.14,
+    -0.026,
+    0.011
+   ]
+  },
+  {
+   "seed": 50112,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.534,
+   "category": "start collision",
+   "collision": {
+    "t": 1.208,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.41,
+    "vz": [
+     -2.35,
+     2.59
+    ],
+    "v_rel": 5.12
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.016,
+    -0.046,
+    -0.012
+   ]
+  },
+  {
+   "seed": 50113,
+   "catches": 29,
+   "why": "not held (R)",
+   "t": 17.512,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 17.194,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.382,
+    "vz": [
+     2.51,
+     -2.37
+    ],
+    "v_rel": 5.01
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.014,
+    0.071,
+    -0.013
+   ]
+  },
+  {
+   "seed": 50114,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.568,
+   "category": "start collision",
+   "collision": {
+    "t": 1.212,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.43,
+    "vz": [
+     -2.14,
+     2.36
+    ],
+    "v_rel": 4.65
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.024,
+    -0.064,
+    -0.0
+   ]
+  },
+  {
+   "seed": 50115,
+   "catches": 9,
+   "why": "approach too fast (R)",
+   "t": 6.006,
+   "category": "collision -> reach",
+   "collision": {
+    "t": 5.622,
+    "balls": [
+     0,
+     2
+    ],
+    "z": 0.381,
+    "vz": [
+     2.51,
+     -2.31
+    ],
+    "v_rel": 4.94
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.007,
+    -0.031,
+    0.002
+   ]
+  },
+  {
+   "seed": 50116,
+   "catches": 17,
+   "why": "not held (L)",
+   "t": 10.582,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 10.038,
+    "balls": [
+     1,
+     2
+    ],
+    "z": 0.384,
+    "vz": [
+     -2.56,
+     2.53
+    ],
+    "v_rel": 5.23
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.03,
+    -0.022,
+    -0.018
+   ]
+  },
+  {
+   "seed": 50117,
+   "catches": 0,
+   "why": "approach too fast (L)",
+   "t": 1.046,
+   "category": "reach",
+   "collision": null,
+   "n_collisions": 0,
+   "land_err": [
+    -0.071,
+    0.011,
+    0.002
+   ]
+  },
+  {
+   "seed": 50118,
+   "catches": 21,
+   "why": "not held (R)",
+   "t": 13.094,
+   "category": "collision -> lost",
+   "collision": {
+    "t": 12.78,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.363,
+    "vz": [
+     -2.34,
+     2.55
+    ],
+    "v_rel": 5.06
+   },
+   "n_collisions": 1,
+   "land_err": [
+    0.021,
+    0.079,
+    -0.022
+   ]
+  },
+  {
+   "seed": 50119,
+   "catches": 0,
+   "why": "not held (L)",
+   "t": 1.532,
+   "category": "start collision",
+   "collision": {
+    "t": 1.21,
+    "balls": [
+     0,
+     1
+    ],
+    "z": 0.408,
+    "vz": [
+     -2.39,
+     2.54
+    ],
+    "v_rel": 5.09
+   },
+   "n_collisions": 1,
+   "land_err": [
+    -0.034,
+    -0.04,
+    -0.011
+   ]
+  }
+ ]
+}
