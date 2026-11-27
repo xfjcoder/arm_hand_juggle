@@ -350,8 +350,8 @@ sensing, 120 seeds:
 | 3 balls, 0.05 m/s | 16/120 | **99/120** (21 out of reach) |
 | 2 balls, 0.05 m/s | 30/120 | **92/120** (28 out of reach) |
 
-With collisions off no ball is lost from a hand; what is left is catches out of reach. (Two balls fail more
-than three here because the start differs: one ball fewer in the air means a different first-catch geometry.)
+With collisions off no ball is lost from a hand; what is left is catches out of reach. (Why two balls
+end up out of reach more often than three is not yet checked.)
 
 ## Next
 
