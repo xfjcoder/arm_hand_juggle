@@ -315,11 +315,38 @@ was hurt more because its catch corrections were already near the speed limit).
 
 ![two arms, two balls, realistic sensing](media/stage2b_real.gif)
 
+## Stage 3: three balls, two arms, realistic sensing (passed, up to moderate throw errors)
+
+![three-ball cascade, realistic sensing](media/stage3_real.gif)
+
+The three-ball cascade, real time, realistic sensing, a random 0.02 m/s kick at every release (15 catches shown).
+
+Same cycle as Stage 2b with every throw filled (`stage2b_juggle.py --balls 3`): each ball is thrown every 1.65 s
+and spends 0.90 s in the air, 0.75 s in a hand; a throw every 0.55 s. A Shadow Hand cannot start with two
+balls, so the third is fed in flight at the start, as if the left hand had thrown it half a hand period
+before the first throw. Balls pass about 10 cm apart where rising and falling paths cross (worst 6 cm over 100
+throws with kicks; no ball-ball contact).
+
+**Robustness** (`stage2b_robust.py --balls 3`, 120 seeds, 30 catches):
+
+| kick per axis | ideal, 50000+ | realistic, 50000+ | realistic, fresh 90000+ |
+|---|---|---|---|
+| none | **120/120** | **120/120** | **120/120** |
+| 0.02 m/s | **114/120** | **114/120** | **114/120** |
+| 0.05 m/s | | 16/120, median 8 | |
+
+A 100-throw run (realistic, 0.02 m/s) completes. Compared with two balls (119/120 at 0.02 m/s) the third ball
+costs ~5 runs in 120, all "not held": with every slot filled there is no empty beat in which a slightly
+disturbed hand gets a free cycle. As with two balls, realistic sensing costs nothing measurable.
+
 ## Next
 
-- **Stage 3:** three balls on the same cycle.
-- Open: catching balls ~6 cm off target (the 0.05 m/s test) needs a hand that keeps an off-centre ball, or
-  more reach than a UR10e gives in 0.35 s.
+- The open problem is the same for two and three balls: balls arriving ~6 cm off target (0.05 m/s throw
+  errors) are often caught off the palm centre and lost, or out of reach in the 0.35 s the hand is empty.
+  Candidates: a grip that recentres an off-centre ball during the 0.75 s hold; a catch that meets the ball
+  with the palm centre rather than the nominal ball point; more reach (a faster arm).
+- Path to hardware: UR arms take position/velocity streaming, not torque; finger speeds; friction and spin
+  randomisation; safety.
 
 ```
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_speed.py              # throw-speed feasibility (~35 s)
@@ -341,4 +368,6 @@ PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --start runs/cycle2
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_reach.py
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --n 120 --kick 0.02 --sensors ideal --out logs/stage2b_v5_ideal_kick0.02.jsonl
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --throws 12 --seed 50000 --kick 0.02 --gif media_full/stage2b_ideal.gif
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --n 120 --seed0 90000 --kick 0.02 --sensors real --out logs/stage3_real_kick0.02_90000.jsonl
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --balls 3 --throws 15 --seed 7 --kick 0.02 --sensors real --gif media_full/stage3_real.gif
 ```

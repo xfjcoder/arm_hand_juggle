@@ -100,6 +100,8 @@ def reset2(m, d, hands, balls, settle=0.8):
                 d.qpos[m.jnt_qposadr[m.actuator_trnid[u, 0]]] = J.cup[u]
     mj.mj_forward(m, d)
     ids = hands[0].J.ids
+    for b in range(len(balls), len(ids.balls)):          # the rest out of the way
+        d.qpos[ids.ball_q[b]:ids.ball_q[b] + 3] = [3.0, 3.0 + b, -1.4]
     for b, h in enumerate(balls):
         p, R, _, _ = h.J.palm()
         q0 = ids.ball_q[b]
@@ -133,12 +135,24 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
     hands = [Hand(J, cy, J is JL, k0, T_start, D_open, grip_delay, g, vmax_ratio, log)
              for J, k0, g in ((JR, 0, grip[0]), (JL, 1, grip[1]))]
     tacs = [[Tactile(h.J, srng, ball=i, **cfg["tactile"]) for i in range(n_balls)] for h in hands]
-    reset2(m, d, hands, [hands[i % 2] for i in range(n_balls)])
+    reset2(m, d, hands, [hands[i % 2] for i in range(min(n_balls, 2))])
     for i, h in enumerate(hands):
         h.held = i if i < n_balls else None
+    fits = [None] * n_balls
+    if n_balls > 2:
+        # the third ball: fed in flight, as if the left hand had thrown it Tc / 2 before the right hand's
+        # first throw (a Shadow Hand cannot start with two balls); the right hand catches it first
+        s0 = cy["Tc"] / 2 - T_start
+        p0, v0 = cy["p_rel"] * MIR, np.r_[cy["v_in"], G * cy["F"] / 2]
+        q2, v2 = JR.ids.ball_q[2], JR.ids.ball_v[2]
+        d.qpos[q2:q2 + 3] = p0 + v0 * s0 + np.r_[0, 0, -0.5 * G * s0 ** 2]
+        d.qpos[q2 + 3:q2 + 7] = [1, 0, 0, 0]
+        d.qvel[v2:v2 + 6] = np.r_[v0 + np.r_[0, 0, -G * s0], 0, 0, 0]
+        mj.mj_forward(m, d)
+        fits[2] = BallFit()
+        fits[2].t0 = -1.0
     slot = lambda k: (k % 3) if (k % 3) < n_balls else None
     z_catch = cy["hit"][2]
-    fits = [None] * n_balls
     t, step, why, catches, thrown = 0.0, 0, None, 0, 0
     releases = []
     while True:
