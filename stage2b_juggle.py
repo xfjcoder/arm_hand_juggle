@@ -39,7 +39,7 @@ MIR = np.array([1.0, -1.0, 1.0])
 MIRX = np.array([-1.0, 1.0, 1.0])              # palm frame: the left hand's x axis is flipped
 
 
-def load_cycle(JR, run="runs/cycle2b_v4.json", start="runs/start2b_v4.json"):
+def load_cycle(JR, run="runs/cycle2b_v5.json", start="runs/start2b_v5.json"):
     """The nominal right-hand cycle (stage2b_cem.py's tuned x, or the gate solution if run is None) in the
     two-arm robot's coordinates (mirror plane y = 0), the Catcher it was built with, and the start-up throw."""
     R = json.load(open(run)) if run else {}
@@ -301,8 +301,8 @@ def main():
     ap.add_argument("--seed", type=int)
     ap.add_argument("--kick", type=float, default=0.0)
     ap.add_argument("--sensors", default="ideal", choices=["ideal", "real"])
-    ap.add_argument("--run", default="runs/cycle2b_v4.json")
-    ap.add_argument("--start", default="runs/start2b_v4.json")
+    ap.add_argument("--run", default="runs/cycle2b_v5.json")
+    ap.add_argument("--start", default="runs/start2b_v5.json")
     ap.add_argument("--gif")
     a = ap.parse_args()
     JR, JL = make(a.balls)

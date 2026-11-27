@@ -240,12 +240,12 @@ motion optimised together with the ball in the hand, a throw designed from scrat
 funnel-shaped hand (as in Ploeger et al. 2020) might. Three balls in one hand would need ~7 m/s throws and is
 out of reach, so the project moves to two arms, where each hand gets far more time per ball.
 
-## Stage 2b: two balls, two arms (ideal sensing: works, but not yet robust to throw errors)
+## Stage 2b: two balls, two arms (ideal sensing: solid up to moderate throw errors)
 
 ![two arms, two balls, cascade rhythm](media/stage2b_ideal.gif)
 
-Two balls on the three-ball cascade rhythm, real time, front and three-quarter views, ideal sensing (12
-catches shown; this seed reaches 30 of 30).
+Two balls on the three-ball cascade rhythm, real time, front and three-quarter views, ideal sensing, a random
+0.02 m/s kick at every release (12 catches shown).
 
 **The robot** (`scene.build(arms=2)`, `stage2b_scene.py`). Two UR10e arms 0.7 m apart, a right and a left
 Shadow Hand; in the Stage 1 poses the palms are 0.35 m apart.
@@ -278,22 +278,35 @@ Picked: 1 m tosses (F 0.90 s), hand empty V = 0.35 s, holding D = 0.75 s, a thro
   is still on the palm cost 0.4 m/s of throw).
 - A constant bias in the loop (2.5 cm forward, 11 ms early) is taken out of the release velocity.
 
+**Catch reach** (`stage2b_reach.py`): how far the catch point can move front-back and still be reached in the
+0.35 s the hand is empty, within 0.97 of the joint speed limits. The gate's cycle reaches 13-17 cm; the first
+full-simulation tunings traded that down to 8 cm toward the body, which is exactly where the loop failed. The
+final tuning (`--reach-min 0.12`) keeps 12 cm, and trains on incoming balls twice as disturbed (`--inc-scale 2`).
+
+Tried and dropped: a 1.3 m toss with the hand empty 0.53 s (reach 18-21 cm, but throws scatter twice as much
+and errors compound from catch to throw: 15/120 at 0.05 m/s); a linear in-hand predictor of the throw error
+from the skin's ball position and the catch error (`stage2b_inhand_fit.py`, R^2 below 0.25: the errors left
+are the random kicks themselves, or rare bad throws a linear model cannot see).
+
 **Robustness** (`stage2b_robust.py`, 120 seeds, ideal sensing, a random velocity kick at every release):
 
-| kick per axis | reach 30 catches | median | throw spread (front-back) |
+| kick per axis | first cycle (v2b) | final cycle (v5), seeds 50000+ | v5, fresh seeds 90000+ |
 |---|---|---|---|
-| none | 106/120 | 30 | 1.6 cm |
-| 0.02 m/s | 113/120 | 30 | |
-| 0.05 m/s (Stage 1's test) | 12/120 | 4 | 5 cm |
+| none | 106/120 reach 30 | | **120/120** |
+| 0.02 m/s | 113/120 | **119/120** | **119/120** |
+| 0.05 m/s (Stage 1's test) | 12/120, median 4 | 35/120, median 16 | 32/120, median 14 |
 
-Every failure is the catch: a ball landing ~9 cm or more from the nominal spot cannot be reached in the 0.35 s
-the hand is empty within the joint speed limits (Stage 1's hand had ~0.9 s). One ball, same test: 85/120.
+Throw spread in the tuning unit: 0.9-1.3 cm front-back. At 0.05 m/s the kick alone puts balls ~4.5 cm off per
+axis (~6 cm radial). Half the failures are then balls caught far from the palm centre and lost from the hand,
+half are catches out of reach. One ball, same 0.05 test: 85/120 (its hand is empty ~0.9 s).
 
 ## Next
 
-- **Stage 2b, ideal sensing:** more catch reach for the 0.05 m/s test, e.g. a cascade cycle with a longer empty
-  time (the gate allows V up to 0.46 s at 1 m, or 0.52 s at 1.3 m), then realistic sensing.
+- **Stage 2b with realistic sensing** (camera latency, occlusion, dropouts; skin delay and noise) on the final
+  cycle. The camera errors act at the catch, so the 0.02 m/s result is the relevant baseline.
 - **Stage 3:** three balls on the same cycle.
+- Open: catching balls ~6 cm off target (the 0.05 m/s test) needs a hand that keeps an off-centre ball, or
+  more reach than a UR10e gives in 0.35 s.
 
 ```
 PYTHONPATH=. MUJOCO_GL=egl python3 stage0_speed.py              # throw-speed feasibility (~35 s)
@@ -310,8 +323,9 @@ PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_onehand_gif.py media_full/s
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_closeup_gif.py media_full/stage2_closeup.gif
 PYTHONPATH=. MUJOCO_GL=egl python3 stage2b_scene.py                              # two-arm scene images
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_timing.py                   # two-hand gate (~5 min)
-PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --gens 40 --incs 12 --init runs/cycle2b_v2_init.json --out runs/cycle2b_v2.json   # (~25 min)
-PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --start runs/cycle2b_v2b.json --out runs/start2b_v2b.json
-PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --n 120 --kick 0.05 --sensors ideal --out logs/stage2b_v2b_ideal_kick0.05.jsonl
-PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --throws 12 --seed 50000 --gif media_full/stage2b_ideal.gif
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --gens 40 --incs 12 --inc-scale 2 --reach-min 0.12 --init runs/cycle2b_v4.json --out runs/cycle2b_v5.json   # (~25 min)
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --start runs/cycle2b_v5.json --out runs/start2b_v5.json
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_reach.py
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --n 120 --kick 0.02 --sensors ideal --out logs/stage2b_v5_ideal_kick0.02.jsonl
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --throws 12 --seed 50000 --kick 0.02 --gif media_full/stage2b_ideal.gif
 ```
