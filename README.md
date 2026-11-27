@@ -194,6 +194,13 @@ The two-ball loop with each cycle tried, about 1/8 speed (red: ball 1, blue: bal
 arm at 1.58x its speed limits and still cannot reach the next catch. 3: with the limits enforced, ball 2 is
 caught and held, but re-thrown at 1.4 m/s instead of 4.5.
 
+![close-up: catch, carry, throw](media/stage2_closeup.gif)
+
+Close-up of one catch -> carry -> throw per cycle (an undisturbed incoming ball). 1: the ball rolls across the
+open palm and drops out during the carry. 2: the cage holds it, but the arm runs at 1.70x its speed limits
+and the throw is 3.0 m/s. 3: within the limits, the cage holds it through the carry and it slips out early in
+the throw, at 0.9 m/s.
+
 **The timing.** With two balls in one hand, each ball flies F = 2V + D: the hand holds a ball for the dwell D
 (catch, carry, throw) and is empty for V (from a throw to the next catch). A 1 m toss flies 0.92 s. Stage 1's
 catch-to-throw takes 1.5-2.4 s (a long dip, settling in the hand, a 0.35 s stroke from rest), so the cycle
@@ -249,4 +256,5 @@ PYTHONPATH=. MUJOCO_GL=egl python3 stage1_juggle.py --catch runs/catch5_v443.jso
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_timing_cem.py 0 0.2      # two balls, one hand: periodic-cycle gate (~3 min)
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_cem.py --gens 50 --out runs/cycle2_v2.json   # catch-carry-throw unit CEM (~25 min)
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_onehand_gif.py media_full/stage2_onehand.gif
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2_closeup_gif.py media_full/stage2_closeup.gif
 ```
