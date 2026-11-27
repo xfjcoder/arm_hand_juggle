@@ -297,8 +297,8 @@ are the random kicks themselves, or rare bad throws a linear model cannot see).
 | 0.05 m/s (Stage 1's test) | 12/120, median 4 | 35/120, median 16 | 32/120, median 14 |
 
 Throw spread in the tuning unit: 0.9-1.3 cm front-back. At 0.05 m/s the kick alone puts balls ~4.5 cm off per
-axis (~6 cm radial). Half the failures are then balls caught far from the palm centre and lost from the hand,
-half are catches out of reach. One ball, same 0.05 test: 85/120 (its hand is empty ~0.9 s).
+axis (~6 cm radial). One ball, same 0.05 test: 85/120 (its hand is empty ~0.9 s). The "not held" failures
+were first read as off-centre catches; they are ball-ball collisions (see Stage 3, *Where the losses come from*).
 
 **Realistic sensing** (`--sensors real`: camera 120 Hz, 20 ms delay, occlusion by the arms, 2% dropped
 frames; skin 100 Hz, 10 ms delay, 2 mm noise, 0.05 N threshold), same 120-seed test:
@@ -324,8 +324,8 @@ The three-ball cascade, real time, realistic sensing, a random 0.02 m/s kick at 
 Same cycle as Stage 2b with every throw filled (`stage2b_juggle.py --balls 3`): each ball is thrown every 1.65 s
 and spends 0.90 s in the air, 0.75 s in a hand; a throw every 0.55 s. A Shadow Hand cannot start with two
 balls, so the third is fed in flight at the start, as if the left hand had thrown it half a hand period
-before the first throw. Balls pass about 10 cm apart where rising and falling paths cross (worst 6 cm over 100
-throws with kicks; no ball-ball contact).
+before the first throw. Balls pass about 10 cm apart where rising and falling paths cross (worst 6 cm in one
+100-throw run with kicks; over many seeds they do collide, see below).
 
 **Robustness** (`stage2b_robust.py --balls 3`, 120 seeds, 30 catches):
 
@@ -335,16 +335,30 @@ throws with kicks; no ball-ball contact).
 | 0.02 m/s | **114/120** | **114/120** | **114/120** |
 | 0.05 m/s | | 16/120, median 8 | |
 
-A 100-throw run (realistic, 0.02 m/s) completes. Compared with two balls (119/120 at 0.02 m/s) the third ball
-costs ~5 runs in 120, all "not held": with every slot filled there is no empty beat in which a slightly
-disturbed hand gets a free cycle. As with two balls, realistic sensing costs nothing measurable.
+A 100-throw run (realistic, 0.02 m/s) completes. As with two balls, realistic sensing costs nothing measurable.
+
+**Where the losses come from.** Every catch logged on 60 seeds at 0.05 m/s (`catch_info` diagnostic): the
+arm reaches its planned catch point to ~1 cm, but in the 41 lost catches the ball is 3-25 cm *above* it at
+the catch time, its velocity 0.2-1.8 m/s off the camera fit. All 41 hit another ball ~0.18 s before the catch:
+the ball just thrown up out of a hand meets the ball falling into it, where the cascade's paths cross ~10 cm
+apart. Rerun with ball-ball collisions switched off (`stage2b_robust.py --ghost`, diagnostic only), realistic
+sensing, 120 seeds:
+
+| | collisions on | collisions off |
+|---|---|---|
+| 3 balls, 0.02 m/s | 114/120 | **120/120** |
+| 3 balls, 0.05 m/s | 16/120 | **99/120** (21 out of reach) |
+| 2 balls, 0.05 m/s | 30/120 | **92/120** (28 out of reach) |
+
+With collisions off no ball is lost from a hand; what is left is catches out of reach. (Two balls fail more
+than three here because the start differs: one ball fewer in the air means a different first-catch geometry.)
 
 ## Next
 
-- The open problem is the same for two and three balls: balls arriving ~6 cm off target (0.05 m/s throw
-  errors) are often caught off the palm centre and lost, or out of reach in the 0.35 s the hand is empty.
-  Candidates: a grip that recentres an off-centre ball during the 0.75 s hold; a catch that meets the ball
-  with the palm centre rather than the nominal ball point; more reach (a faster arm).
+- The open problem, for two and three balls: with 0.05 m/s throw errors, balls collide in the air where the
+  rising and falling paths cross (most losses), and some arrive out of reach in the 0.35 s the hand is empty.
+  Candidates: wider spacing of the throw and catch spots (now 10 cm), throws re-aimed to clear the incoming
+  ball, more reach.
 - Path to hardware: UR arms take position/velocity streaming, not torque; finger speeds; friction and spin
   randomisation; safety.
 

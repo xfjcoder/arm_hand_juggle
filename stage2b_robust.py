@@ -15,10 +15,13 @@ from robolab import evalpool
 _W = {}
 
 
-def run(seed, throws, kick, sensors, noise, balls=2):
+def run(seed, throws, kick, sensors, noise, balls=2, ghost=False):
     if not _W:
         JR, JL = stage2b_juggle.make(balls)
         _W.update(JR=JR, JL=JL, cy=stage2b_juggle.load_cycle(JR))
+        if ghost:                                    # balls pass through each other (still collide with the rest)
+            for i in JR.ids.balls:
+                JR.m.geom_contype[JR.m.body_geomadr[i]] = 2
     r = stage2b_juggle.juggle2b(_W["JR"], _W["JL"], _W["cy"], n_balls=balls, throws=throws, seed=seed, kick=kick,
                                 preset=sensors, noise=noise)
     rel = r.pop("releases")
@@ -37,9 +40,10 @@ def main():
     ap.add_argument("--sensors", default="ideal", choices=["ideal", "real"])
     ap.add_argument("--noise", type=float, default=0.002)
     ap.add_argument("--out", default="logs/stage2b_ideal.jsonl")
+    ap.add_argument("--ghost", action="store_true", help="no ball-ball collisions (diagnostic)")
     a = ap.parse_args()
     R = evalpool.evaluate(run, range(a.seed0, a.seed0 + a.n), procs=min(12, os.cpu_count()),
-                          kwargs=dict(throws=a.throws, kick=a.kick, sensors=a.sensors, noise=a.noise, balls=a.balls))
+                          kwargs=dict(throws=a.throws, kick=a.kick, sensors=a.sensors, noise=a.noise, balls=a.balls, ghost=a.ghost))
     with open(a.out, "w") as f:
         for r in R:
             f.write(json.dumps(r) + "\n")
