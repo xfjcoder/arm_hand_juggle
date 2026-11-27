@@ -36,15 +36,17 @@ from stage1_juggle import peak_ratio
 CATCH = "runs/catch5_v443.json"
 CAMERA = camera_pos(lookat=(1.0, 0.0, 0.4))           # the tracking camera, in front of the two-arm robot
 MIR = np.array([1.0, -1.0, 1.0])
+MIRX = np.array([-1.0, 1.0, 1.0])              # palm frame: the left hand's x axis is flipped
 
 
-def load_cycle(JR, run="runs/cycle2b_v2b.json", start="runs/start2b_v2b.json"):
+def load_cycle(JR, run="runs/cycle2b_v4.json", start="runs/start2b_v4.json"):
     """The nominal right-hand cycle (stage2b_cem.py's tuned x, or the gate solution if run is None) in the
     two-arm robot's coordinates (mirror plane y = 0), the Catcher it was built with, and the start-up throw."""
-    b = stage2b_cem.gate_row()
+    R = json.load(open(run)) if run else {}
+    b = stage2b_cem.gate_row(R.get("pick", stage2b_cem.PICK))
     pl = Planner(JR)
     c, q_rel, q_cock = stage2b_cem.catcher(JR, pl)
-    x = np.array(json.load(open(run))["x"]) if run else np.r_[b["z"], 0.0, 0.0, 0.0, 0.05, 0.03, 0.0]
+    x = np.array(R["x"]) if run else np.r_[b["z"], 0.0, 0.0, 0.0, 0.05, 0.03, 0.0]
     cy = stage2b_cem.build(JR, pl, c, q_rel, b, x, centre=0.0)
     xs = np.array(json.load(open(start))["xs"]) if start else np.r_[0.4, 0.0, 0.0, 0.0, cy["D_open"]]
     q_r, qd_r, qdd_r = cy["rel"]
@@ -72,6 +74,8 @@ class Hand:
         self.held = None                                       # ball in (or leaving) the hand
         self.incoming = None
         self.gap_h, self.leaving, self.gap, self.last_reading = 0, None, 0, None
+        self.fb = self.fb_thrown = self.last_off_t = None
+        self.offs, self.catch_dev = [], np.zeros(3)
 
     def throw_time(self, k):
         return self.T_start + k * self.Tc / 2
@@ -116,7 +120,8 @@ def reset2(m, d, hands, balls, settle=0.8):
 
 
 def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="ideal", noise=0.002, vmax_ratio=0.97,
-             frames=None, render=None, every=16, log=None, feats=None):
+             frames=None, render=None, every=16, log=None, correct=None, lead=0.25, data=None,
+             strict=False):
     m, d = JR.m, JR.d
     dt = m.opt.timestep
     rng = np.random.default_rng(seed)
@@ -165,6 +170,10 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                                          t_throw=round(h.throw_time(h.k - 2), 3),
                                          land_err=(land - target)[:2].round(3).tolist(),
                                          t_err=round(t + Fr - (h.throw_time(h.k - 2) + cy["F"]), 3)))
+                    if data is not None and h.fb_thrown is not None:
+                        e = releases[-1]
+                        data.append(dict(f=h.fb_thrown.round(5).tolist(),
+                                         y=[e["land_err"][0], e["land_err"][1] * (-1 if h.mir else 1), e["t_err"]]))
                     if log:
                         log(f"  {releases[-1]}")
                     fits[b] = BallFit()
@@ -183,24 +192,35 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                     h.gap_h = h.gap_h + 1 if (r is not None and not r[1]) else 0
                     if h.gap_h > 20:
                         why = f"not held ({'LR'[not h.mir]})"
-                if feats is not None and h.held is not None and h.t_grip is not None:
-                    for lead in (0.25, 0.15, 0.10):
-                        tf = h.throw_time(h.k) - lead
-                        if tf <= t < tf + dt:
-                            p_, R_, v6, _ = J.palm()
-                            b_, bv_ = JR.ball(h.held)
-                            Mx = np.diag([-1.0, 1, 1]) if h.mir else np.eye(3)    # left palm frame: x flipped
-                            feats.setdefault((h.held, round(h.throw_time(h.k), 3)), {})[lead] = np.r_[
-                                Mx @ (R_.T @ (b_ - p_)), Mx @ (R_.T @ (bv_ - v6[:3]))].round(4).tolist()
+                if h.held is not None and h.t_grip is not None and h.fb is None:
+                    # in-hand feedback: the skin's ball position (palm frame, the left palm's x flipped into the
+                    # right's) plus where and when the ball was caught predict the throw's landing error; at
+                    # `lead` before the release the rest of the stroke is re-planned to cancel it
+                    r = readings[h.held]
+                    if r is not None and r[1] and r[2] is not None and r[0] != h.last_off_t:
+                        h.last_off_t = r[0]
+                        h.offs.append(r[2] * (MIRX if h.mir else 1))
+                    T_rel = h.throw_time(h.k)
+                    if t >= T_rel - lead and h.offs:
+                        h.fb = np.r_[np.mean(h.offs[-3:], 0), h.catch_dev]
+                        if correct is not None:
+                            pred = np.asarray(correct["A"]) @ h.fb + np.asarray(correct["b"])
+                            gain = correct.get("gain", 1.0)
+                            dv = -gain * np.r_[pred[0] / cy["F"], pred[1] / cy["F"], 0.5 * G * pred[2]]
+                            q_r, qd_r, qdd_r = cy["rel"]
+                            qd_r = qd_r + np.linalg.solve(h.pl.jac6(q_r), np.r_[dv, 0, 0, 0])
+                            h.seg = Seg(t, T_rel - t, (q, qd, qdd), (q_r, qd_r, qdd_r))
                 if t >= h.throw_time(h.k):                        # the release state: start the vacant
                     if h.held is not None:
                         thrown += 1
                         if h.t_grip is not None:
                             catches += 1
+                    h.fb_thrown, h.fb = h.fb, None
                     h.held = None
                     h.incoming = slot(h.k - 1)
                     h.vac = Seg(t, h.V, h.seg(h.seg.t0 + h.seg.T - 1e-9), cy["catch"])   # on from where the stroke ends
                     h.phase, h.t_hit, h.next_plan = "vacant", t + h.V, t
+                    h.hit_plan = None                             # set by the first feasible plan
                     h.k += 2
                     q, qd, qdd = h.vac(t)
             else:
@@ -222,16 +242,17 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                         new = Seg(t, tau, (q, qd, qdd), h.c.catch_state(hit, bv + np.r_[0, 0, -G * tau]))
                         pk = peak_ratio(new)
                         if pk <= vmax_ratio:
-                            ok = (new, tau)
+                            ok = (new, tau, hit)
                             break
-                    if ok is None:
+                    if ok is None and (strict or h.hit_plan is None):
                         why = f"approach too fast ({'LR'[not h.mir]})"
                         if log and pk is not None:
                             tb, tv = h.ball_in(*JR.ball(h.incoming))
                             log(f"  approach: hit {hit.round(3)} peak {pk:.2f}; fit {b.round(3)} {bv.round(2)}, "
                                 f"true {tb.round(3)} {tv.round(2)}, fit from {f.t0:.3f}, {len(f.t)} frames")
-                    else:
+                    elif ok is not None:
                         h.vac, h.t_hit = ok[0], t + ok[1]
+                        h.hit_plan = ok[2]
                         q, qd, qdd = h.vac(t)
                     h.next_plan = t + 0.02
                 if t >= h.t_hit:
@@ -241,6 +262,10 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                     h.t_open = T_rel - h.D_open
                     h.held = h.incoming
                     h.t_grip = t + h.grip_delay if h.held is not None else None
+                    t_nom = h.throw_time(h.k - 2) + h.V
+                    hp = cy["hit"] if h.hit_plan is None else h.hit_plan
+                    h.catch_dev = np.r_[(hp - cy["hit"])[:2], t - t_nom]
+                    h.offs, h.fb = [], None
                     h.phase, h.gap_h = "dwell", 0
                     q, qd, qdd = end
             J.control_joint(*h.out((q, qd, qdd)))
@@ -276,8 +301,8 @@ def main():
     ap.add_argument("--seed", type=int)
     ap.add_argument("--kick", type=float, default=0.0)
     ap.add_argument("--sensors", default="ideal", choices=["ideal", "real"])
-    ap.add_argument("--run", default="runs/cycle2b_v2b.json")
-    ap.add_argument("--start", default="runs/start2b_v2b.json")
+    ap.add_argument("--run", default="runs/cycle2b_v4.json")
+    ap.add_argument("--start", default="runs/start2b_v4.json")
     ap.add_argument("--gif")
     a = ap.parse_args()
     JR, JL = make(a.balls)

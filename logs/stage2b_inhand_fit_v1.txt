@@ -1,0 +1,50 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2408 throws (ideal sensing, lead 0.25 s); held-out R^2 and residual std:
+  land x   : std 0.0341 -> 0.0326  R^2 0.08  coef {'off_x': -2.66, 'off_y': -0.02, 'off_z': -4.9, 'catch_dx': -0.04, 'catch_dy': 0.07, 'catch_dt': -0.16}
+  land y   : std 0.0326 -> 0.0320  R^2 0.04  coef {'off_x': -2.65, 'off_y': 1.06, 'off_z': 0.95, 'catch_dx': 0.05, 'catch_dy': 0.12, 'catch_dt': -0.23}
+  arrival t: std 0.0085 -> 0.0078  R^2 0.16  coef {'off_x': -1.08, 'off_y': 0.44, 'off_z': 0.85, 'catch_dx': 0.02, 'catch_dy': 0.01, 'catch_dt': -0.01}

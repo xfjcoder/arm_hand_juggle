@@ -42,6 +42,7 @@ from robolab import evalpool
 from stage1_juggle import peak_ratio
 
 NZ = 11                                 # gate parameters
+REACH_MIN = None                        # --reach-min: minimum front-back catch reach (m), None: not scored
 EXTRA = ["vb_x", "vb_y", "vb_z", "D_open", "grip_delay", "cage"]
 PICK = dict(pattern="cascade", vz=4.43, d_y=0.10, V=0.35)
 
@@ -71,10 +72,10 @@ def build(J, pl, c, q_rel, b, x, centre=gate.CENTRE_Y):
     return cy
 
 
-def incoming(n, seed):
+def incoming(n, seed, scale=1.0):
     rng = np.random.default_rng(seed)
-    return [dict(kick=rng.normal(0, 0.05, 3), off=np.r_[rng.uniform(-0.01, 0.01, 2), 0.0], spin=rng.normal(0, 20, 3))
-            for _ in range(n)]
+    return [dict(kick=scale * rng.normal(0, 0.05, 3), off=scale * np.r_[rng.uniform(-0.01, 0.01, 2), 0.0],
+                 spin=rng.normal(0, 20, 3)) for _ in range(n)]
 
 
 def unit(J, pl, cy, inc, frames=None, render=None, every=16):
@@ -173,6 +174,22 @@ def unit(J, pl, cy, inc, frames=None, render=None, every=16):
     return out
 
 
+def reach_x(cy, vmax_ratio=0.97, iters=8):
+    """Smallest front-back catch reach (m) of the nominal vacant segment: how far the catch point can move
+    toward or away from the body, arriving at the same time, within vmax_ratio of the speed limits."""
+    c = cy["c"]
+    out = []
+    for sign in (1, -1):
+        lo, hi = 0.0, 0.3
+        for _ in range(iters):
+            mid = (lo + hi) / 2
+            hit = cy["hit"] + np.r_[sign * mid, 0.0, 0.0]
+            ok = peak_ratio(Seg(0.0, cy["V"], cy["rel"], c.catch_state(hit, cy["v_hit"]))) <= vmax_ratio
+            lo, hi = (mid, hi) if ok else (lo, mid)
+        out.append(lo)
+    return min(out)
+
+
 def cost(r):
     over = max(r["qd_ratio"], r["peak"]) - 0.97
     if over > 0 or r["tau_sat"] > 0.01:                          # outside the limits: as bad as a drop, or worse
@@ -181,28 +198,35 @@ def cost(r):
         return 10.0 - 4.0 * r["held_frac"]                         # graded: how far through the dwell it stayed
     c = np.sum((np.array(r["land_err"]) / 0.03) ** 2) + (r["t_err"] / 0.03) ** 2
     c += 20 * max(0.0, r["qd_ratio"] - 0.93) + 20 * max(0.0, r["peak"] - 0.93)
+    if "reach" in r:                                               # keep room to chase imperfect throws
+        c += (max(0.0, REACH_MIN - r["reach"]) / 0.01) ** 2
     return float(6 * c / (c + 50))                                 # 0-6: below every dropped ball (6-10)
 
 
 _BASE = {}
 
 
-def _base():
-    if not _BASE:
+def _base(pick=None):
+    if not _BASE or (pick is not None and _BASE["pick"] != pick):
         J = juggle.Juggler(1, human=True)
         pl = Planner(J)
         c, q_rel, _ = catcher(J, pl)
-        _BASE.update(J=J, pl=pl, c=c, q_rel=q_rel, b=gate_row())
+        pick = pick or PICK
+        _BASE.update(J=J, pl=pl, c=c, q_rel=q_rel, b=gate_row(pick), pick=pick)
     return _BASE
 
 
-def evaluate_one(i, pop, incs):
-    B = _base()
+def evaluate_one(i, pop, incs, pick=None, reach_min=None):
+    global REACH_MIN
+    REACH_MIN = reach_min
+    B = _base(pick)
     k, j = divmod(i, len(incs))
     cy = build(B["J"], B["pl"], B["c"], B["q_rel"], B["b"], pop[k])
     r = unit(B["J"], B["pl"], cy, incs[j])
+    if reach_min is not None:
+        r["reach"] = reach_x(build(B["J"], B["pl"], B["c"], B["q_rel"], B["b"], pop[k]))
     return dict(k=k, cost=cost(r), held=int(r["held"]), qd=r["qd_ratio"], peak=r["peak"],
-                land=r.get("land_err"), t_err=r.get("t_err"))
+                land=r.get("land_err"), t_err=r.get("t_err"), reach=r.get("reach"))
 
 
 def main():
@@ -213,19 +237,24 @@ def main():
     ap.add_argument("--init", help="start from a previous run's x")
     ap.add_argument("--out", default="runs/cycle2b_v1.json")
     ap.add_argument("--start", help="tune the start-up throw for this cycle run instead (writes --out)")
+    ap.add_argument("--vz", type=float, default=PICK["vz"], help="gate cycle: toss speed")
+    ap.add_argument("--V", type=float, default=PICK["V"], help="gate cycle: empty time")
+    ap.add_argument("--reach-min", type=float, help="penalise front-back catch reach below this (m)")
+    ap.add_argument("--inc-scale", type=float, default=1.0, help="incoming-ball disturbance scale")
     a = ap.parse_args()
     if a.start:
         return tune_start(a.start, a.out)
-    B = _base()
-    x0 = np.r_[B["b"]["z"], 0.0, 0.0, 0.0, 0.08, 0.03, 0.8] if not a.init else np.array(json.load(open(a.init))["x"])
+    pick = dict(PICK, vz=a.vz, V=a.V)
+    B = _base(pick)
+    x0 = np.r_[B["b"]["z"], 0.0, 0.0, 0.0, 0.07, 0.0, 0.86] if not a.init else np.array(json.load(open(a.init))["x"])
     sig = np.r_[np.full(6, 0.5), 0.05, 0.05, 0.05, 0.05, 0.4, 0.3, 0.3, 0.3, 0.02, 0.02, 0.2]
     rng = np.random.default_rng(0)
     mu, best = x0.copy(), (np.inf, x0.copy())
     for g in range(a.gens):
-        incs = incoming(a.incs, seed=1000 + g)
+        incs = incoming(a.incs, seed=1000 + g, scale=a.inc_scale)
         pop = np.vstack([mu, mu + sig * rng.standard_normal((a.pop - 1, len(mu)))])
         R = evalpool.evaluate(evaluate_one, range(len(pop) * len(incs)), procs=min(12, os.cpu_count()),
-                              kwargs=dict(pop=pop, incs=incs))
+                              kwargs=dict(pop=pop, incs=incs, pick=pick, reach_min=a.reach_min))
         C, H = np.zeros(len(pop)), np.zeros(len(pop))
         for r in R:
             C[r["k"]] += r["cost"] / len(incs)
@@ -235,10 +264,11 @@ def main():
             best = (C[idx[0]], pop[idx[0]].copy())
         mu, sig = pop[idx].mean(0), 0.7 * sig + 0.3 * pop[idx].std(0)
         lands = [r["land"] for r in R if r["k"] == idx[0] and r["land"] is not None]
+        reach = [r["reach"] for r in R if r["k"] == idx[0] and r["reach"] is not None]
         print(f"gen {g:2d}  best {C[idx[0]]:.2f}  held {H[idx[0]]:.2f}  mean(elite) {C[idx].mean():.2f}  "
               f"mu-cost {C[0]:.2f} held {H[0]:.2f}  land {np.round(np.mean(lands, 0), 3).tolist() if lands else None}  "
-              f"extras {np.round(pop[idx[0]][NZ:], 3).tolist()}", flush=True)
-        json.dump(dict(x=best[1].tolist(), cost=best[0], gen=g, pick=PICK), open(a.out, "w"))
+              f"reach {reach[0] if reach else None}  extras {np.round(pop[idx[0]][NZ:], 3).tolist()}", flush=True)
+        json.dump(dict(x=best[1].tolist(), cost=best[0], gen=g, pick=pick, reach_min=a.reach_min), open(a.out, "w"))
 
 
 def start_unit(J, pl, cy, xs, q_start, frames=None, render=None, every=16):
@@ -287,8 +317,9 @@ def start_unit(J, pl, cy, xs, q_start, frames=None, render=None, every=16):
 
 def tune_start(cycle_run, out, gens=25, pop=24):
     """CEM on start_unit (deterministic: one evaluation per candidate)."""
-    B = _base()
-    x = json.load(open(cycle_run))["x"]
+    run = json.load(open(cycle_run))
+    B = _base(run.get("pick", PICK))
+    x = run["x"]
     cy = build(B["J"], B["pl"], B["c"], B["q_rel"], B["b"], x)
     _, q_rel, q_cock = catcher(B["J"], B["pl"])
     q_start = cy["rel"][0] - (q_rel - q_cock)
