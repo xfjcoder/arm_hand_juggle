@@ -495,6 +495,23 @@ one-hand fountains (Stage 2a: stopped at the arm's limits) or a synchronous cros
 meet unless the hands throw one in front of the other (the left arm would no longer be the right arm's
 mirror). Not started.
 
+**What-ifs** (`stage2b_timing.py --four2`, `logs/stage4_gate2.txt`), each cycle re-optimised:
+
+| change | best V = 0.30 s cycles | best V = 0.35 s cycles |
+|---|---|---|
+| none (UR10e) | 0.97-0.99 | 1.04-1.07 |
+| catch spot 20 cm to the side (Stage 2a: brings in shoulder_pan) | 0.98-1.00 | 1.05-1.09 |
+| release-pose range +-0.8 rad instead of +-0.4 | 0.97-0.99 | 1.04-1.06 |
+| both | 0.99-1.00 | 1.04-1.07 |
+| speed and torque limits x 1.25 | **0.78-0.80** | **0.82-0.85** |
+| speed and torque limits x 1.5 | 0.65-0.66 | 0.70-0.71 |
+
+(peak ratio to the limits in force, speed and torque, throw speeds 4.5-6.5 m/s.) A different pose does not
+help. The ratios fall as 1 / scale: the optimiser keeps the same motion, limited by wrist_1 speed (180 deg/s)
+and elbow torque (150 N m) together. The 3-ball cycle in use sits at 0.77 in this gate, so an arm about 1.25x
+faster and stronger at the elbow and wrist would give 4 balls the same headroom at V = 0.30, and ~1.4x at V
+= 0.35 (the 3-ball cycle's empty time). Within the UR10e's limits, 4 balls stay out.
+
 ## Next
 
 - What is left at 0.05 m/s (final version, seeds 50000+): 3 balls 19 lost from the hand and 7 out of reach;
