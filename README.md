@@ -9,6 +9,20 @@ Models come from `mujoco_menagerie` (`universal_robots_ur10e`, `shadow_hand`) an
 (12.5 kg payload). Joint torques are capped at the real UR10e values (330/330/150/56/56/56 N m). The real joint
 speed limits (120/120/180/180/180/180 deg/s) are not in the model, so they are checked on every run.
 
+## Status: closed
+
+| stage | result |
+|---|---|
+| 0: feasibility | one hand: 1 ball fits the limits, 3 balls need a second arm (done) |
+| 1: one ball, one hand | continuous juggling with realistic sensing (done) |
+| 2a: two balls, one hand | stopped at the arm's limits |
+| 2b: two balls, two arms | cascade cycle, realistic sensing (done) |
+| 3: three balls, two arms | 30 catches in 120/120 runs with no kick or 0.02 m/s kicks; at 0.05 m/s 94/120 (held-out 92), 2 balls 98/120 (held-out 99) |
+| 4: four balls | not built: within the UR10e limits only at 0.97-1.00 of them; an arm ~1.25x faster at the elbow and wrist would leave the 3-ball cycle's headroom |
+
+Left open: the remaining 3-ball losses at 0.05 m/s (19 balls lost from the hand, 7 out of reach), four balls on
+a faster arm, and the path to hardware (UR arms take position/velocity streaming, not torque).
+
 ## Stage 0: feasibility gate (done)
 
 ![stage 0 toss](media/stage0_toss.gif)
