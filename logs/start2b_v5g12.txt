@@ -1,0 +1,48 @@
+WARNING: Attach conflict when attaching 'right_shadow_hand' to 'ur10e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+
+/home/cstu/robo/arm_hand_juggle/scene.py:118: UserWarning: Attach conflict when attaching 'right_shadow_hand' to 'ur10e', policy is 'warning'
+impratio: parent has 1 (default), child has 10, keeping parent value
+cone: parent has 0 (default), child has 1, keeping parent value
+  return build_spec(n_balls, human, arms, sep).compile()
+start gen  0 best 0.647 land [-0.041, 0.061] t_err -0.000 gap 0.175 peak 0.74  xs [0.496, 0.254, -0.03, 0.674, 0.054, 0.007, 0.026]
+start gen  1 best 1.039 land [0.048, -0.029] t_err +0.017 gap 0.094 peak 0.76  xs [0.491, 0.244, -0.119, 0.692, 0.063, 0.002, 0.019]
+start gen  2 best 0.448 land [0.032, 0.05] t_err -0.011 gap 0.178 peak 0.82  xs [0.463, 0.301, -0.013, 0.575, 0.057, 0.016, 0.037]
+start gen  3 best 0.116 land [0.03, -0.002] t_err +0.002 gap 0.145 peak 0.74  xs [0.438, 0.178, -0.038, 0.618, 0.06, -0.023, 0.04]
+start gen  4 best 0.104 land [-0.013, -0.025] t_err -0.000 gap 0.123 peak 0.76  xs [0.452, 0.13, -0.053, 0.599, 0.059, -0.025, 0.047]
+start gen  5 best 0.025 land [-0.005, -0.007] t_err +0.011 gap 0.127 peak 0.85  xs [0.44, 0.103, -0.051, 0.612, 0.068, -0.001, 0.039]
+start gen  6 best 0.050 land [0.002, -0.015] t_err -0.012 gap 0.129 peak 0.77  xs [0.454, 0.138, -0.041, 0.535, 0.063, -0.018, 0.042]
+start gen  7 best 0.009 land [-0.004, -0.004] t_err -0.006 gap 0.135 peak 0.87  xs [0.432, 0.151, -0.074, 0.567, 0.063, -0.002, 0.047]
+start gen  8 best 0.038 land [0.011, -0.006] t_err +0.002 gap 0.116 peak 0.78  xs [0.464, 0.163, -0.079, 0.595, 0.064, -0.006, 0.028]
+start gen  9 best 0.012 land [0.008, -0.002] t_err -0.006 gap 0.142 peak 0.83  xs [0.463, 0.171, -0.026, 0.546, 0.06, 0.003, 0.046]
+start gen 10 best 0.033 land [0.009, -0.012] t_err +0.005 gap 0.128 peak 0.81  xs [0.448, 0.144, -0.047, 0.605, 0.061, -0.006, 0.041]
+start gen 11 best 0.012 land [0.008, 0.001] t_err +0.005 gap 0.153 peak 0.75  xs [0.441, 0.128, -0.033, 0.603, 0.063, -0.028, 0.051]
+start gen 12 best 0.008 land [-0.0, 0.006] t_err +0.005 gap 0.147 peak 0.81  xs [0.445, 0.131, -0.032, 0.607, 0.061, -0.01, 0.043]
+start gen 13 best 0.007 land [-0.007, 0.002] t_err -0.001 gap 0.145 peak 0.79  xs [0.447, 0.121, -0.025, 0.586, 0.063, -0.017, 0.044]
+start gen 14 best 0.003 land [-0.003, 0.004] t_err +0.001 gap 0.145 peak 0.81  xs [0.449, 0.12, -0.032, 0.573, 0.063, -0.01, 0.045]
+start gen 15 best 0.005 land [0.0, 0.004] t_err +0.004 gap 0.147 peak 0.81  xs [0.453, 0.122, -0.029, 0.595, 0.063, -0.009, 0.045]
+start gen 16 best 0.002 land [0.003, -0.0] t_err -0.002 gap 0.138 peak 0.79  xs [0.458, 0.135, -0.036, 0.576, 0.064, -0.012, 0.04]
+start gen 17 best 0.003 land [0.003, 0.002] t_err -0.002 gap 0.141 peak 0.82  xs [0.458, 0.123, -0.031, 0.562, 0.065, -0.005, 0.041]
+start gen 18 best 0.000 land [0.001, 0.0] t_err +0.000 gap 0.142 peak 0.79  xs [0.462, 0.14, -0.03, 0.597, 0.061, -0.009, 0.043]
+start gen 19 best 0.001 land [0.001, -0.001] t_err -0.002 gap 0.140 peak 0.81  xs [0.457, 0.129, -0.029, 0.577, 0.063, -0.008, 0.043]
+start gen 20 best 0.000 land [-0.0, 0.001] t_err -0.000 gap 0.143 peak 0.79  xs [0.454, 0.129, -0.031, 0.59, 0.063, -0.012, 0.043]
+start gen 21 best 0.000 land [0.001, -0.001] t_err +0.001 gap 0.142 peak 0.80  xs [0.452, 0.139, -0.029, 0.59, 0.062, -0.01, 0.044]
+start gen 22 best 0.001 land [0.002, 0.001] t_err +0.000 gap 0.142 peak 0.80  xs [0.456, 0.141, -0.031, 0.594, 0.061, -0.008, 0.042]
+start gen 23 best 0.000 land [-0.001, -0.0] t_err -0.001 gap 0.141 peak 0.80  xs [0.456, 0.142, -0.03, 0.592, 0.06, -0.007, 0.042]
+start gen 24 best 0.001 land [0.003, 0.002] t_err +0.000 gap 0.143 peak 0.80  xs [0.455, 0.136, -0.029, 0.594, 0.061, -0.009, 0.043]
+start gen 25 best 0.000 land [-0.001, -0.001] t_err -0.002 gap 0.139 peak 0.81  xs [0.454, 0.139, -0.03, 0.588, 0.061, -0.007, 0.042]
+start gen 26 best 0.000 land [-0.001, 0.001] t_err -0.001 gap 0.143 peak 0.80  xs [0.456, 0.14, -0.029, 0.592, 0.061, -0.009, 0.043]
+start gen 27 best 0.000 land [-0.001, -0.001] t_err +0.000 gap 0.140 peak 0.80  xs [0.454, 0.136, -0.032, 0.595, 0.06, -0.009, 0.043]
+start gen 28 best 0.000 land [0.0, 0.001] t_err +0.001 gap 0.142 peak 0.81  xs [0.456, 0.14, -0.03, 0.598, 0.061, -0.006, 0.043]
+start gen 29 best 0.000 land [-0.001, -0.0] t_err -0.000 gap 0.141 peak 0.81  xs [0.456, 0.139, -0.03, 0.593, 0.061, -0.007, 0.043]
+start gen 30 best 0.000 land [0.0, 0.0] t_err -0.000 gap 0.143 peak 0.82  xs [0.458, 0.142, -0.028, 0.589, 0.061, -0.003, 0.044]
+start gen 31 best 0.000 land [-0.001, -0.0] t_err +0.001 gap 0.142 peak 0.81  xs [0.456, 0.136, -0.03, 0.596, 0.061, -0.006, 0.044]
+start gen 32 best 0.000 land [0.001, 0.001] t_err -0.001 gap 0.141 peak 0.81  xs [0.456, 0.141, -0.029, 0.588, 0.061, -0.005, 0.042]
+start gen 33 best 0.000 land [-0.001, -0.0] t_err -0.001 gap 0.141 peak 0.81  xs [0.456, 0.142, -0.029, 0.588, 0.06, -0.005, 0.043]
+start gen 34 best 0.000 land [-0.001, 0.0] t_err -0.000 gap 0.143 peak 0.81  xs [0.456, 0.14, -0.028, 0.587, 0.061, -0.007, 0.045]
+start gen 35 best 0.000 land [0.001, -0.0] t_err -0.000 gap 0.141 peak 0.82  xs [0.456, 0.141, -0.029, 0.586, 0.061, -0.004, 0.043]
+start gen 36 best 0.000 land [-0.0, -0.001] t_err +0.000 gap 0.141 peak 0.82  xs [0.456, 0.139, -0.029, 0.586, 0.061, -0.004, 0.043]
+start gen 37 best 0.000 land [0.001, 0.0] t_err -0.000 gap 0.142 peak 0.82  xs [0.456, 0.14, -0.029, 0.586, 0.061, -0.003, 0.043]
+start gen 38 best 0.000 land [0.0, 0.0] t_err +0.000 gap 0.141 peak 0.82  xs [0.456, 0.139, -0.028, 0.586, 0.061, -0.002, 0.043]
+start gen 39 best 0.000 land [0.0, 0.0] t_err -0.000 gap 0.141 peak 0.82  xs [0.457, 0.136, -0.028, 0.585, 0.062, -0.002, 0.043]

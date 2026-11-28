@@ -27,7 +27,8 @@ def run(seed, throws, kick, sensors, noise, balls=2, ghost=False, cycle=None, st
     rel = r.pop("releases")
     A = r.pop("aims")
     r["aim"] = dict(n=len(A), moved=sum(1 for x in A if x["dp"]), dp_max=max([x["dp"] for x in A] or [0.0]),
-                    gap0_min=min([x["gap0"] for x in A] or [1.0]))
+                    gap0_min=min([x["gap0"] for x in A] or [1.0]), gap_min=min([x["gap"] for x in A] or [1.0]),
+                    pk0_max=max([x.get("pk0", 0.0) for x in A] or [0.0]), pk_max=max([x.get("pk", 0.0) for x in A] or [0.0]))
     r["land_err"] = [x["land_err"] + [x["t_err"]] for x in rel]
     r.update(seed=seed, all=int(r["catches"] >= throws), within_limits=int(r["qd_ratio"] <= 1.0 and r["tau_sat"] <= 0.01))
     return r
@@ -48,6 +49,8 @@ def main():
     ap.add_argument("--start", help="start-up throw run for --run")
     ap.add_argument("--aim-start", type=float, default=None,
                     help="offset limit on the start-up throws (m); 0: none; default: as DMAX")
+    ap.add_argument("--aim-reach", type=float, default=None, metavar="W",
+                    help="reach-aware offset (stage2b_juggle.aim_reach), W: cost per dmax of offset")
     ap.add_argument("--aim", type=float, nargs=3, metavar=("MARGIN", "DMAX", "LEAD"),
                     help="offset each release point to clear the incoming ball (stage2b_juggle.aim_offset)")
     a = ap.parse_args()
@@ -55,7 +58,7 @@ def main():
                           kwargs=dict(throws=a.throws, kick=a.kick, sensors=a.sensors, noise=a.noise, balls=a.balls,
                                       ghost=a.ghost, cycle=a.run, start=a.start,
                                       aim=dict(margin=a.aim[0], dmax=a.aim[1], lead=a.aim[2],
-                                               start=a.aim_start != 0, start_dmax=a.aim_start or a.aim[1])
+                                               start=a.aim_start != 0, start_dmax=a.aim_start or a.aim[1], reach=a.aim_reach)
                                       if a.aim else None))
     with open(a.out, "w") as f:
         for r in R:

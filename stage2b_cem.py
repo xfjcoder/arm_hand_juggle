@@ -43,6 +43,7 @@ from stage1_juggle import peak_ratio
 
 NZ = 11                                 # gate parameters
 REACH_MIN = None                        # --reach-min: minimum front-back catch reach (m), None: not scored
+GAP_MIN = None                          # --gap-min (with --start): minimum gap at the start crossing (m)
 EXTRA = ["vb_x", "vb_y", "vb_z", "D_open", "grip_delay", "cage"]
 PICK = dict(pattern="cascade", vz=4.43, d_y=0.10, V=0.35)
 
@@ -202,6 +203,8 @@ def cost(r):
     c += 20 * max(0.0, r["qd_ratio"] - 0.93) + 20 * max(0.0, r["peak"] - 0.93)
     if "reach" in r:                                               # keep room to chase imperfect throws
         c += (max(0.0, REACH_MIN - r["reach"]) / 0.01) ** 2
+    if GAP_MIN is not None and "gap" in r:                         # start-up: clear of the other start ball
+        c += (max(0.0, GAP_MIN - r["gap"]) / 0.01) ** 2
     return float(6 * c / (c + 50))                                 # 0-6: below every dropped ball (6-10)
 
 
@@ -244,10 +247,12 @@ def main():
     ap.add_argument("--d-y", type=float, default=PICK["d_y"], help="gate cycle: catch spot this far outside the throw spot")
     ap.add_argument("--reach-min", type=float, help="penalise front-back catch reach below this (m)")
     ap.add_argument("--reach-y", action="store_true", help="--reach-min also applies inward and outward")
+    ap.add_argument("--gap-min", type=float, help="with --start: tune a release offset for this start-crossing gap (m)")
+    ap.add_argument("--gens-start", type=int, default=25)
     ap.add_argument("--inc-scale", type=float, default=1.0, help="incoming-ball disturbance scale")
     a = ap.parse_args()
     if a.start:
-        return tune_start(a.start, a.out)
+        return tune_start(a.start, a.out, gens=a.gens_start, gap_min=a.gap_min, init=a.init)
     pick = dict(PICK, vz=a.vz, V=a.V, d_y=a.d_y)
     B = _base(pick)
     x0 = np.r_[B["b"]["z"], 0.0, 0.0, 0.0, 0.07, 0.0, 0.86]
@@ -281,15 +286,38 @@ def main():
                        reach_y=a.reach_y), open(a.out, "w"))
 
 
+def start_release(pl, cy, xs):
+    """The start-up stroke's end state: the cycle's release state, its commanded ball velocity biased by
+    vb_s, and (xs[5:7], if given) its release point moved by dp horizontally with the velocity changed by
+    -dp / F so the ball still lands where and when it would (as stage2b_juggle.aim_offset)."""
+    q_r, qd_r, qdd_r = cy["rel"]
+    dp = np.r_[xs[5:7], 0.0] if len(xs) > 5 else np.zeros(3)
+    w = pl.jac6(q_r) @ qd_r + np.r_[np.asarray(xs[1:4]) - dp / cy["F"], 0, 0, 0]
+    if np.any(dp):
+        q_r = pl.ik_ball(pl.ball_point(q_r) + dp, pl.fk(q_r)[1], q_r)
+    return q_r, np.linalg.solve(pl.jac6(q_r), w), qdd_r
+
+
+def start_gap(cy, rel, Tc):
+    """Closest approach (m) between the start-up throw (rel = (t_r, p, v), ballistic, the stroke ending at
+    t = T_s) and the ball the other hand's mirrored start-up throw sent Tc / 2 earlier, over this hand's vacant
+    after the release: the two start crossings (right throw vs the fed third ball, left throw vs ball 0)."""
+    t_r, p, v = rel
+    path = lambda t: p + v * (t - t_r)[:, None] + np.c_[0 * t, 0 * t, -0.5 * G * (t - t_r) ** 2]
+    ts = cy["T_s"] + np.arange(0.05, cy["V"] - 0.03, 0.005)
+    other = path(ts + Tc / 2) * np.r_[1.0, -1.0, 1.0] + np.r_[0.0, 2 * cy["centre"], 0.0]   # mirror_p
+    return float(np.min(np.linalg.norm(path(ts) - other, axis=1)))
+
+
 def start_unit(J, pl, cy, xs, q_start, frames=None, render=None, every=16):
     """The start-up throw: from rest at q_start, ball settled in the holding hand, a stroke of T_s into the
-    release state (its commanded ball velocity biased by vb_s), hand open D_open before the end.
-    xs = [T_s, vb_s (3), D_open]. Returns the landing error at the left hand's catch spot and the time error."""
-    T_s, vb, D_open = float(np.clip(xs[0], 0.3, 0.8)), np.asarray(xs[1:4]), float(np.clip(xs[4], 0.0, 0.15))
+    release state (start_release), hand open D_open before the end.
+    xs = [T_s, vb_s (3), D_open[, dp_x, dp_y]]. Returns the landing error at the left hand's catch spot, the
+    time error and the gap at the start crossing (start_gap)."""
+    T_s, D_open = float(np.clip(xs[0], 0.3, 0.8)), float(np.clip(xs[4], 0.0, 0.15))
     m, d = J.m, J.d
     J.reset(q=q_start, grip=J.hold)
-    q_r, qd_r, qdd_r = cy["rel"]
-    qd_r = qd_r + np.linalg.solve(pl.jac6(q_r), np.r_[vb, 0, 0, 0])
+    q_r, qd_r, qdd_r = start_release(pl, cy, xs)
     seg = Seg(0.0, T_s, (q_start, np.zeros(6), np.zeros(6)), (q_r, qd_r, qdd_r))
     nxt = Seg(T_s, cy["V"], (q_r, qd_r, qdd_r), cy["catch"])
     t, gap, rel, step, t_sep = 0.0, 0, None, 0, None
@@ -321,12 +349,16 @@ def start_unit(J, pl, cy, xs, q_start, frames=None, render=None, every=16):
         Fr = (v[2] + np.sqrt(max(disc, 0.0))) / G
         land = p + v * Fr + np.r_[0, 0, -0.5 * G * Fr ** 2]
         out.update(land_err=(land - gate.mirror_p(cy["hit"], cy["centre"]))[:2].tolist(),
-                   t_err=float(t_r + Fr - (T_s + cy["F"])), v=v.tolist())
+                   t_err=float(t_r + Fr - (T_s + cy["F"])), v=v.tolist(), p=p.tolist(), t_r=float(t_r - T_s),
+                   gap=start_gap(dict(cy, T_s=T_s), rel, cy["Tc"]))
     return out
 
 
-def tune_start(cycle_run, out, gens=25, pop=24):
-    """CEM on start_unit (deterministic: one evaluation per candidate)."""
+def tune_start(cycle_run, out, gens=25, pop=24, gap_min=None, init=None):
+    """CEM on start_unit (deterministic: one evaluation per candidate). gap_min: also tune a release-point
+    offset (dp_x, dp_y) and penalise a start-crossing gap below gap_min. init: start from a previous run's xs."""
+    global GAP_MIN
+    GAP_MIN = gap_min
     run = json.load(open(cycle_run))
     B = _base(run.get("pick", PICK))
     x = run["x"]
@@ -335,9 +367,15 @@ def tune_start(cycle_run, out, gens=25, pop=24):
     q_start = cy["rel"][0] - (q_rel - q_cock)
     rng = np.random.default_rng(0)
     mu, sig = np.r_[0.4, 0.0, 0.0, 0.0, 0.05], np.r_[0.08, 0.3, 0.3, 0.3, 0.02]
+    if gap_min is not None:
+        mu, sig = np.r_[mu, 0.0, 0.0], np.r_[sig, 0.02, 0.02]
+    if init:
+        x0 = np.array(json.load(open(init))["xs"])
+        mu[:len(x0)] = x0
+        sig[:5] *= 0.5
     best = (np.inf, mu)
     for g in range(gens):
-        P = np.vstack([mu, mu + sig * rng.standard_normal((pop - 1, 5))])
+        P = np.vstack([mu, mu + sig * rng.standard_normal((pop - 1, len(mu)))])
         R = [start_unit(B["J"], B["pl"], cy, xs, q_start) for xs in P]
         C = np.array([cost(r) for r in R])
         idx = np.argsort(C)[:6]
@@ -345,8 +383,9 @@ def tune_start(cycle_run, out, gens=25, pop=24):
             best = (C[idx[0]], P[idx[0]].copy(), R[idx[0]])
         mu, sig = P[idx].mean(0), 0.7 * sig + 0.3 * P[idx].std(0)
         print(f"start gen {g:2d} best {C[idx[0]]:.3f} land {np.round(R[idx[0]].get('land_err', []), 3).tolist()} "
-              f"t_err {R[idx[0]].get('t_err', 0):+.3f} peak {R[idx[0]]['peak']:.2f}  xs {np.round(P[idx[0]], 3).tolist()}", flush=True)
-    json.dump(dict(xs=best[1].tolist(), cost=best[0], result={k: v for k, v in best[2].items()}), open(out, "w"))
+              f"t_err {R[idx[0]].get('t_err', 0):+.3f} gap {R[idx[0]].get('gap', 0):.3f} peak {R[idx[0]]['peak']:.2f}  xs {np.round(P[idx[0]], 3).tolist()}", flush=True)
+    json.dump(dict(xs=best[1].tolist(), cost=best[0], gap_min=gap_min, result={k: v for k, v in best[2].items()}),
+              open(out, "w"))
 
 
 if __name__ == "__main__":

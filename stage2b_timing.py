@@ -46,8 +46,11 @@ def mirror_p(p, centre=CENTRE_Y):
     return np.r_[p[0], 2 * centre - p[1], p[2]]
 
 
+LIM = dict(v=1.0, t=1.0, clip=0.4)    # what-ifs (--four2): joint speed and torque limits x v, x t; release pose range
+
+
 def unpack(z):
-    return z[:3], z[3:6], float(np.clip(z[6], 0.0, 1.0)), np.clip(z[7:10], -0.4, 0.4), z[10]
+    return z[:3], z[3:6], float(np.clip(z[6], 0.0, 1.0)), np.clip(z[7:10], -LIM["clip"], LIM["clip"]), z[10]
 
 
 def states(J, pl, c, q_rel, z, vz, V, D, c_off, centre=CENTRE_Y, vb=(0.0, 0.0, 0.0)):
@@ -106,13 +109,13 @@ def limits(J, pl, segs, n):
     for seg, T in segs:
         for i in range(n + 1):
             q, qd, qdd = seg(T * i / n)
-            rs = np.abs(qd) / scene.JOINT_VMAX
+            rs = np.abs(qd) / (LIM["v"] * scene.JOINT_VMAX)
             if rs.max() > spd:
                 spd, js = float(rs.max()), int(rs.argmax())
             d.qpos[ids.arm_q], d.qvel[:], d.qacc[:] = q, 0.0, 0.0
             d.qvel[ids.arm_v], d.qacc[ids.arm_v] = qd, qdd
             mj.mj_inverse(J.m, d)
-            rt = np.abs(d.qfrc_inverse[ids.arm_v]) / scene.TORQUE_MAX
+            rt = np.abs(d.qfrc_inverse[ids.arm_v]) / (LIM["t"] * scene.TORQUE_MAX)
             if rt.max() > tau:
                 tau, jt = float(rt.max()), int(rt.argmax())
     return spd, tau, js, jt
@@ -143,6 +146,7 @@ def setup():
 
 
 def search(job, pop=64, elite=8, gens=60):
+    LIM.update(v=job.get("vscale", 1.0), t=job.get("tscale", 1.0), clip=job.get("clip", 0.4))
     J, pl, c, q_rel, z0 = setup()
     rng = np.random.default_rng(job["seed"])
     run = lambda z, n=24: cycle(J, pl, c, q_rel, z, job["vz"], job["V"], job["D"], job["c_off"], n)
@@ -222,13 +226,41 @@ def four_jobs():
     return out
 
 
+def four2_jobs():
+    """Four-ball what-ifs: a faster arm (speed and torque limits x 1.25, x 1.5), a catch spot 0.20 m to the side
+    (Stage 2a: brings in shoulder_pan), a wider release-pose range (+-0.8 rad)."""
+    out = []
+    for vs, dy, clip in ((1.0, 0.20, 0.4), (1.0, 0.10, 0.8), (1.0, 0.20, 0.8), (1.25, 0.10, 0.4), (1.5, 0.10, 0.4)):
+        for vz in (4.5, 5.0, 5.5, 6.0, 6.5):
+            F = 2 * vz / G
+            for V in (0.30, 0.35, 0.40):
+                D = round(F - 2 * V, 3)
+                if D >= 0.25:
+                    out.append(dict(pattern="four", vz=vz, V=V, D=D, d_y=dy, c_off=[0, -dy, 0], vscale=vs,
+                                    tscale=vs, clip=clip, seed=3000 + len(out)))
+    return out
+
+
 def main():
     import argparse
     from robolab import evalpool
     ap = argparse.ArgumentParser()
     ap.add_argument("--wide", type=float, nargs="*", help="only these extra cascade spacings d_y (m), added to the log")
     ap.add_argument("--four", action="store_true", help="four-ball cycles (F = 2 V + D), added to the log")
+    ap.add_argument("--four2", action="store_true", help="four-ball what-ifs (four2_jobs), logs/stage4_gate2.*")
     a = ap.parse_args()
+    if a.four2:
+        R = evalpool.evaluate(search, four2_jobs(), procs=14)
+        json.dump(R, open("logs/stage4_gate2.json", "w"))
+        lines = ["four balls, what-ifs: limits x scale, catch d_y, release pose range; ratios to the scaled limits",
+                 " scale d_y  pose |  vz    F  |  V     D  | speed      torque     | ok"]
+        for r in sorted(R, key=lambda r: (r["vscale"], r["d_y"], r["clip"], r["vz"], r["V"])):
+            lines.append(f"  {r['vscale']:.2f} {r['d_y']:.2f} {r['clip']:.1f} | {r['vz']:.2f} {r['F']:.2f} | {r['V']:.2f} "
+                         f"{r['D']:.2f} | {r['speed']:.2f} {NAMES[r['js']][:8]:8s} {r['torque']:.2f} {NAMES[r['jt']][:8]:8s} "
+                         f"| {'yes' if r['ok'] else ''}")
+        print("\n".join(lines))
+        open("logs/stage4_gate2.txt", "w").write("\n".join(lines) + "\n")
+        return
     if a.four:
         R = [r for r in json.load(open("logs/stage2b_timing.json")) if r["pattern"] != "four"]
         R += evalpool.evaluate(search, four_jobs(), procs=12)

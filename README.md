@@ -442,6 +442,43 @@ Held-out seeds 90000+, Stage 3 cycle without / with the offset: 3 balls at 0.05 
 - With the offset, what is left (`stage3_failures.py classify --aim`, 0.05 m/s): 3 balls 18 start-up
   collisions, 23 collisions during juggling (was 68), 10 out of reach; 2 balls 21 start-up collisions, 5
   collisions (was 43), 18 out of reach.
+
+### Start-up throws and a reach-aware offset
+
+![three balls, re-tuned start-up throw and reach-aware offset, 0.05 m/s kicks](media/stage3_start.gif)
+
+Seed 50005, which used to lose a ball to a start-up collision before its first catch (the
+`fail_b3_start_collision` case above), now with both changes (15 catches shown; it reaches 30 in the
+evaluation).
+
+120 seeds each, realistic sensing, 0.05 m/s kicks, runs reaching 30 catches (all within the limits):
+
+| | 3 balls | 3 balls, held-out | 2 balls | 2 balls, held-out |
+|---|---|---|---|---|
+| offset (above) | 69 | 71 | 76 | 81 |
+| + start-up stroke with separation | 78 | 82 | 95 | 93 |
+| + reach-aware offset | **94** | **92** | **98** | **99** |
+
+At 0.02 m/s and with no kick, the final version stays at 120/120.
+
+- **Start-up stroke** (`stage2b_cem.py --start ... --gap-min 0.13`, `runs/start2b_v5g13.json`): both start
+  crossings (the right hand's first throw against the fed third ball, the left hand's first throw against
+  ball 0) passed only 9.1-9.7 cm apart, centre to centre. The start-up stroke is re-tuned with its own
+  release-point offset (2 more parameters, the same landing-preserving velocity change) and a penalty below a
+  gap target. The gap is computed from the released ball against its own mirror image released Tc / 2
+  earlier, which is exact, because the right hand's start-up throw is the left's mirror image. The third
+  ball is now fed along that mirror path. Targets 12 / 13 / 14 cm all tune to < 1 mm landing error; in the
+  two-arm simulation the crossings are then 15 cm apart. Over 120 seeds the three are 81 / 78 / 81 (3 balls)
+  and 82 / 95 / 86 (2 balls); the 13 cm one is kept. Losses before the first catch from a dropped ball go
+  from 18-21 to 0-1.
+- **Reach-aware offset** (`stage2b_juggle.aim_reach`, now the default `AIM`): instead of one direction (away
+  from the incoming ball) and a growing size, 17 candidate offsets (none, and 8 directions at 2 and 4 cm).
+  Candidates whose re-planned stroke exceeds the speed limit are dropped. Of those that clear the 10 cm gap
+  (or, if none does, the ones with the largest gap), the choice is the lowest peak speed ratio of the empty
+  move from that release to the predicted catch of the incoming ball, plus 0.05 per 4 cm of offset. The
+  peak ratios differ little between candidates (~0.005), so how much each part contributes is not clear: with
+  the offset size weighted 10 instead of 0.05 (in effect: the smallest offset that clears the gap, any
+  direction) it is 87 (3 balls) and 94 (2 balls), between the old offset and the reach-aware one.
 - A harness bug found on the way: with the wider cycles the ball lifts off the opening hand before the
   release, the release detector fired there and again at the real release, and each such throw got two kicks.
   Releases now count only once the stroke has reached the release point (the Stage 3 cycle never triggered it,
@@ -460,11 +497,9 @@ mirror). Not started.
 
 ## Next
 
-- Start-up throws: the largest group of the remaining losses (18-21 runs in 120 at 0.05 m/s) are collisions
-  between the two start-up throws, nominally only 8 cm apart; a start-up stroke tuned with more separation (or
-  with the offset in its tuning) should remove most of them.
-- Out of reach (10-18 runs): the offset could also prefer directions that do not take the hand away from its
-  next catch.
+- What is left at 0.05 m/s (final version, seeds 50000+): 3 balls 19 lost from the hand and 7 out of reach;
+  2 balls 8 lost and 14 out of reach. Not yet re-classified; before, nearly all losses from the hand followed a
+  collision.
 - Four balls would need a faster arm or a different pattern (see the gate above).
 - Path to hardware: UR arms take position/velocity streaming, not torque; finger speeds; friction and spin
   randomisation; safety.
@@ -493,10 +528,13 @@ PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --n 12
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --balls 3 --throws 15 --seed 7 --kick 0.02 --sensors real --gif media_full/stage3_real.gif
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick 0.05 --sensors real --ghost --out logs/stage3_ghost_b3_kick0.05.jsonl
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage3_failures.py classify --balls 3 --out logs/stage3_failures_b3.json
-PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick 0.05 --sensors real --aim 0.10 0.04 0.2 --aim-start 0 --out logs/fix_aimns_b3_kick0.05.jsonl
-PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --balls 3 --throws 15 --seed 50003 --kick 0.05 --sensors real --aim --gif media_full/stage3_aim.gif
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick 0.05 --sensors real --run runs/cycle2b_v5.json --start runs/start2b_v5.json --aim 0.10 0.04 0.2 --aim-start 0 --out logs/fix_aimns_b3_kick0.05.jsonl
+# (stage3_aim.gif and the failure GIFs were made with the old start-up stroke, --start runs/start2b_v5.json, and the old offset; the defaults are now the new ones)
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_timing.py --wide 0.15 0.20
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --gens 40 --incs 12 --inc-scale 2 --reach-min 0.12 --d-y 0.20 --init runs/cycle2b_v5.json --out runs/cycle2b_w20.json
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_timing.py --four
+PYTHONPATH=.:../robolab python3 stage2b_cem.py --start runs/cycle2b_v5.json --init runs/start2b_v5.json --gap-min 0.13 --gens-start 40 --out runs/start2b_v5g13.json
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick 0.05 --sensors real --run runs/cycle2b_v5.json --start runs/start2b_v5g13.json --aim 0.10 0.04 0.2 --aim-start 0 --aim-reach 0.05 --out logs/fix_sg13reach_b3_kick0.05_50000.jsonl
+PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --balls 3 --throws 15 --seed 50005 --kick 0.05 --sensors real --aim --gif media_full/stage3_start.gif
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage3_failures.py gif --balls 3 --seed 50000 --title "3 balls: collision, ball lost" --gif media_full/fail_b3_collision_lost.gif
 ```

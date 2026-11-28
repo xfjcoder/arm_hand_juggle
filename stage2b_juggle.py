@@ -37,11 +37,11 @@ CATCH = "runs/catch5_v443.json"
 CAMERA = camera_pos(lookat=(1.0, 0.0, 0.4))           # the tracking camera, in front of the two-arm robot
 MIR = np.array([1.0, -1.0, 1.0])
 MIRX = np.array([-1.0, 1.0, 1.0])              # palm frame: the left hand's x axis is flipped
-AIM = dict(margin=0.10, dmax=0.04, lead=0.2, start=False)   # release-point offset (aim_offset), as tested
+AIM = dict(margin=0.10, dmax=0.04, lead=0.2, start=False, reach=0.05)   # release-point offset (aim_reach)
 BALL_RGBA = ([1.0, 0.25, 0.2, 1], [0.35, 0.85, 1.0, 1], [1.0, 0.85, 0.2, 1])   # GIF colours: red, cyan, yellow
 
 
-def load_cycle(JR, run="runs/cycle2b_v5.json", start="runs/start2b_v5.json"):
+def load_cycle(JR, run="runs/cycle2b_v5.json", start="runs/start2b_v5g13.json"):
     """The nominal right-hand cycle (stage2b_cem.py's tuned x, or the gate solution if run is None) in the
     two-arm robot's coordinates (mirror plane y = 0), the Catcher it was built with, and the start-up throw."""
     R = json.load(open(run)) if run else {}
@@ -50,11 +50,14 @@ def load_cycle(JR, run="runs/cycle2b_v5.json", start="runs/start2b_v5.json"):
     c, q_rel, q_cock = stage2b_cem.catcher(JR, pl)
     x = np.array(R["x"]) if run else np.r_[b["z"], 0.0, 0.0, 0.0, 0.05, 0.03, 0.0]
     cy = stage2b_cem.build(JR, pl, c, q_rel, b, x, centre=0.0)
-    xs = np.array(json.load(open(start))["xs"]) if start else np.r_[0.4, 0.0, 0.0, 0.0, cy["D_open"]]
-    q_r, qd_r, qdd_r = cy["rel"]
-    cy.update(q_start=q_r - (q_rel - q_cock), T_start=float(np.clip(xs[0], 0.3, 0.8)),
-              D_open_start=float(np.clip(xs[4], 0.0, 0.15)),
-              rel_start=(q_r, qd_r + np.linalg.solve(pl.jac6(q_r), np.r_[xs[1:4], 0, 0, 0]), qdd_r))
+    S0 = json.load(open(start)) if start else {}
+    xs = np.array(S0["xs"]) if start else np.r_[0.4, 0.0, 0.0, 0.0, cy["D_open"]]
+    cy.update(q_start=cy["rel"][0] - (q_rel - q_cock), T_start=float(np.clip(xs[0], 0.3, 0.8)),
+              D_open_start=float(np.clip(xs[4], 0.0, 0.15)), rel_start=stage2b_cem.start_release(pl, cy, xs))
+    res = S0.get("result", {})
+    if len(xs) > 5 and "p" in res:
+        # the start-up throw as released in the tuning (one-arm frame: y + CENTRE_Y), for feeding the third ball
+        cy["start_ball"] = (res["t_r"], np.array(res["p"]) - np.r_[0, stage2b_cem.gate.CENTRE_Y, 0], np.array(res["v"]))
     return cy
 
 
@@ -89,6 +92,54 @@ class Hand:
 
     def ball_in(self, b, bv):
         return (b * MIR, bv * MIR) if self.mir else (b, bv)
+
+
+def closest(cy, b, bv, t, T0, dp):
+    """Closest approach (m) between the nominal throw at T0, its release point moved by dp (velocity -dp / F),
+    and the incoming ball (b, bv at time t), until this hand's catch."""
+    p0, v0, F = cy["p_rel"], np.r_[cy["v_out"], G * cy["F"] / 2], cy["F"]
+    s = np.arange(0.05, cy["V"] - 0.03, 0.005)[:, None]
+    tau = T0 + s - t
+    pi = b + bv * tau + np.c_[0 * s, 0 * s, -0.5 * G * tau ** 2]
+    pt = p0 + dp + (v0 - dp / F) * s + np.c_[0 * s, 0 * s, -0.5 * G * s ** 2]
+    return float(np.min(np.linalg.norm(pt - pi, axis=1)))
+
+
+def aim_reach(h, cy, b, bv, t, T0, now, aim, vmax_ratio):
+    """Reach-aware release offset. Candidates dp on a horizontal grid (radius up to aim["dmax"]); kept if the
+    re-planned stroke from `now` stays within the speed limits; the gap to the incoming ball must reach
+    aim["margin"] (if no candidate does: the largest gap); of those, the lowest peak speed ratio of the vacant
+    from the offset release to the incoming ball's predicted catch, plus aim["reach"] per dmax of offset.
+    Returns (stroke or None, dp, gap without, gap with, vacant peak without, with)."""
+    pl, c = h.pl, h.c
+    end = h.seg(h.seg.t0 + h.seg.T - 1e-9)
+    z = cy["hit"][2]
+    disc = bv[2] ** 2 + 2 * G * (b[2] - z)
+    if disc <= 0:
+        return None, np.zeros(3), 0.0, 0.0, 0.0, 0.0
+    tau = (bv[2] + np.sqrt(disc)) / G
+    hit, v_hit = b + bv * tau + np.r_[0, 0, -0.5 * G * tau ** 2], bv + np.r_[0, 0, -G * tau]
+    cat = c.catch_state(hit, v_hit)
+    T_v = max(t + tau - T0, 0.1)
+    R_e, w_e = pl.fk(end[0])[1], pl.jac6(end[0]) @ end[1]
+    cands = [np.zeros(3)] + [r * np.r_[np.cos(a), np.sin(a), 0.0] for r in (0.5 * aim["dmax"], aim["dmax"])
+                             for a in np.arange(8) * np.pi / 4]
+    rows = []
+    for dp in cands:
+        if np.any(dp):
+            q2 = pl.ik_ball(pl.ball_point(end[0]) + dp, R_e, end[0])
+            rel = (q2, np.linalg.solve(pl.jac6(q2), w_e + np.r_[-dp / cy["F"], 0, 0, 0]), end[2])
+            seg = Seg(t, T0 - t, now, rel)
+            if peak_ratio(seg) > vmax_ratio:
+                continue
+        else:
+            rel, seg = end, None
+        g = closest(cy, b, bv, t, T0, dp)
+        pk = peak_ratio(Seg(T0, T_v, rel, cat))
+        rows.append((max(0.0, aim["margin"] - g), pk + aim["reach"] * np.linalg.norm(dp) / aim["dmax"], seg, dp, g, pk))
+    short = min(r[0] for r in rows)
+    best = min((r for r in rows if r[0] <= short + 1e-9), key=lambda r: r[1])
+    return best[2], best[3], rows[0][4], best[4], rows[0][5], best[5]
 
 
 def aim_offset(cy, b, bv, t, T0, aim):
@@ -185,6 +236,9 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
         # first throw (a Shadow Hand cannot start with two balls); the right hand catches it first
         s0 = cy["Tc"] / 2 - T_start
         p0, v0 = cy["p_rel"] * MIR, np.r_[cy["v_in"], G * cy["F"] / 2]
+        if "start_ball" in cy:                       # an offset start-up throw: the mirror of it, Tc / 2 earlier
+            t_r, p, v = cy["start_ball"]
+            p0, v0 = (p - v * t_r + np.r_[0, 0, -0.5 * G * t_r ** 2]) * MIR, (v + np.r_[0, 0, G * t_r]) * MIR
         q2, v2 = JR.ids.ball_q[2], JR.ids.ball_v[2]
         d.qpos[q2:q2 + 3] = p0 + v0 * s0 + np.r_[0, 0, -0.5 * G * s0 ** 2]
         d.qpos[q2 + 3:q2 + 7] = [1, 0, 0, 0]
@@ -274,6 +328,16 @@ def juggle2b(JR, JL, cy, n_balls=2, throws=20, seed=None, kick=0.0, preset="idea
                     if f is not None and f.ready():
                         b, bv = h.ball_in(*f.state(t))
                         a_ = aim if h.phase == "dwell" else dict(aim, dmax=aim.get("start_dmax", aim["dmax"]))
+                    if f is not None and f.ready() and aim.get("reach") is not None:
+                        new, dp, g0, g1, pk0, pk1 = aim_reach(h, cy, b, bv, t, h.throw_time(h.k), (q, qd, qdd),
+                                                             a_, vmax_ratio)
+                        if new is not None:
+                            h.seg = new
+                            q, qd, qdd = h.seg(t)
+                        aims.append(dict(t=round(t, 3), hand="LR"[not h.mir], gap0=round(g0, 3),
+                                         dp=round(float(np.linalg.norm(dp)), 3), gap=round(g1, 3),
+                                         pk0=round(pk0, 3), pk=round(pk1, 3)))
+                    elif f is not None and f.ready():
                         dp, dv, g0, g1 = aim_offset(cy, b, bv, t, h.throw_time(h.k), a_)
                         done = 0.0
                         if g1 > g0:
@@ -418,7 +482,7 @@ def main():
     ap.add_argument("--kick", type=float, default=0.0)
     ap.add_argument("--sensors", default="ideal", choices=["ideal", "real"])
     ap.add_argument("--run", default="runs/cycle2b_v5.json")
-    ap.add_argument("--start", default="runs/start2b_v5.json")
+    ap.add_argument("--start", default="runs/start2b_v5g13.json")
     ap.add_argument("--gif")
     ap.add_argument("--aim", action="store_true", help="offset release points to clear the incoming ball")
     a = ap.parse_args()
