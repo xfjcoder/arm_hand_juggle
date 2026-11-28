@@ -500,7 +500,9 @@ mirror). Not started.
 - What is left at 0.05 m/s (final version, seeds 50000+): 3 balls 19 lost from the hand and 7 out of reach;
   2 balls 8 lost and 14 out of reach. Not yet re-classified; before, nearly all losses from the hand followed a
   collision.
-- Four balls would need a faster arm or a different pattern (see the gate above).
+- Four balls: no pose change helps; an arm ~1.25-1.4x faster and stronger at the elbow and wrist would (gate
+  above). Building it in simulation means a hypothetical arm (scaled limits) and a new pattern (with an even
+  number of balls each hand catches its own throws: two one-hand fountains, or a synchronous crossing).
 - Path to hardware: UR arms take position/velocity streaming, not torque; finger speeds; friction and spin
   randomisation; safety.
 
@@ -533,6 +535,7 @@ PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_timing.py --wide 0.15 0.20
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_cem.py --gens 40 --incs 12 --inc-scale 2 --reach-min 0.12 --d-y 0.20 --init runs/cycle2b_v5.json --out runs/cycle2b_w20.json
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_timing.py --four
+PYTHONPATH=.:../robolab python3 stage2b_timing.py --four2
 PYTHONPATH=.:../robolab python3 stage2b_cem.py --start runs/cycle2b_v5.json --init runs/start2b_v5.json --gap-min 0.13 --gens-start 40 --out runs/start2b_v5g13.json
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_robust.py --balls 3 --kick 0.05 --sensors real --run runs/cycle2b_v5.json --start runs/start2b_v5g13.json --aim 0.10 0.04 0.2 --aim-start 0 --aim-reach 0.05 --out logs/fix_sg13reach_b3_kick0.05_50000.jsonl
 PYTHONPATH=.:../robolab MUJOCO_GL=egl python3 stage2b_juggle.py --balls 3 --throws 15 --seed 50005 --kick 0.05 --sensors real --aim --gif media_full/stage3_start.gif
